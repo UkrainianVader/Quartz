@@ -6,7 +6,9 @@ dotenv.config();
 let con = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: process.env.DB_PASSWORD
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME, // Додай це сюди
+  multipleStatements: true       // Дозволить виконувати кілька запитів
 });
 
 const ensureComponentsTable = (callback) => {

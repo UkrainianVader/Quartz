@@ -54,6 +54,15 @@ const dbOperations = {
             if (err) throw err;
             return result;
         });
+    },
+    query: (sql_query, callback) => {
+        db.query(sql_query, function (err, result) {
+            if (callback) {
+                return callback(err, result);
+            }
+            if (err) throw err;
+            return result;
+        });
     }
 }
 
