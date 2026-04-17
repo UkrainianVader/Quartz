@@ -1,1 +1,24 @@
-<p>login works!</p>
+<section class="login-shell">
+	<div class="login-card">
+		<p class="eyebrow">Arduino component manager</p>
+		<h1>Вхід до системи</h1>
+
+		<form [formGroup]="form" (ngSubmit)="submit()" class="login-form">
+			<label>
+				<span>Логін</span>
+				<input type="text" formControlName="username" autocomplete="username" />
+			</label>
+
+			<label>
+				<span>Пароль</span>
+				<input type="password" formControlName="password" autocomplete="current-password" />
+			</label>
+
+			<p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+			<button type="submit" [disabled]="isSubmitting">
+				{{ isSubmitting ? 'Вхід...' : 'Увійти' }}
+			</button>
+		</form>
+	</div>
+</section>
