@@ -10,6 +10,10 @@ export const routes: Routes = [
 		redirectTo: 'login'
 	},
 	{
+		path: 'mainpage',
+		redirectTo: 'inventory'
+	},
+	{
 		path: 'login',
 		component: Login
 	},

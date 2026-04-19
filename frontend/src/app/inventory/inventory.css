@@ -1,0 +1,265 @@
+.dashboard-shell {
+	min-height: 100dvh;
+	padding: 24px;
+	color: #e2e8f0;
+	background:
+		radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 30%),
+		radial-gradient(circle at top right, rgba(16, 185, 129, 0.12), transparent 24%),
+		linear-gradient(160deg, #0f172a 0%, #111827 55%, #0b1220 100%);
+}
+
+.dashboard-header {
+	display: flex;
+	justify-content: space-between;
+	gap: 16px;
+	align-items: flex-start;
+	margin-bottom: 18px;
+}
+
+.eyebrow {
+	margin: 0 0 8px;
+	text-transform: uppercase;
+	letter-spacing: 0.18em;
+	font-size: 0.72rem;
+	color: #93c5fd;
+}
+
+h1 {
+	margin: 0;
+	font-size: clamp(1.9rem, 4vw, 2.8rem);
+	line-height: 1.05;
+}
+
+.subtitle {
+	margin: 10px 0 0;
+	color: #cbd5e1;
+}
+
+.header-actions,
+.action-group,
+.tab-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+button {
+	border: 0;
+	border-radius: 14px;
+	padding: 12px 16px;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+button.primary {
+	color: #0f172a;
+	background: linear-gradient(135deg, #f8fafc 0%, #bfdbfe 100%);
+}
+
+button.secondary {
+	color: #e2e8f0;
+	background: rgba(148, 163, 184, 0.12);
+	border: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+button.danger {
+	color: #fff;
+	background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.status-row {
+	min-height: 24px;
+	margin-bottom: 16px;
+}
+
+.error {
+	color: #fca5a5;
+}
+
+.success {
+	color: #86efac;
+}
+
+.loading {
+	color: #cbd5e1;
+}
+
+.table-card,
+.modal-card {
+	background: rgba(15, 23, 42, 0.84);
+	border: 1px solid rgba(148, 163, 184, 0.18);
+	box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+	backdrop-filter: blur(14px);
+}
+
+.table-card {
+	border-radius: 24px;
+	overflow: auto;
+}
+
+table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+th,
+td {
+	padding: 14px 16px;
+	border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+	vertical-align: top;
+}
+
+th {
+	text-align: left;
+	color: #93c5fd;
+	font-size: 0.85rem;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+}
+
+.status-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: 6px 10px;
+	border-radius: 999px;
+	font-size: 0.85rem;
+	background: rgba(148, 163, 184, 0.14);
+}
+
+.status-pill.is-repair {
+	background: rgba(248, 113, 113, 0.18);
+	color: #fecaca;
+}
+
+.status-pill.is-assigned {
+	background: rgba(59, 130, 246, 0.18);
+	color: #bfdbfe;
+}
+
+.floating-add,
+.floating-report {
+	position: fixed;
+	right: 24px;
+	z-index: 5;
+}
+
+.floating-add {
+	bottom: 96px;
+}
+
+.floating-report {
+	bottom: 24px;
+}
+
+.modal-backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgba(2, 6, 23, 0.72);
+	display: grid;
+	place-items: center;
+	padding: 24px;
+	z-index: 20;
+}
+
+.modal-card {
+	width: min(100%, 760px);
+	border-radius: 24px;
+	padding: 20px;
+}
+
+.modal-wide {
+	width: min(100%, 980px);
+}
+
+.modal-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 16px;
+}
+
+.icon-button {
+	width: 40px;
+	height: 40px;
+	border-radius: 999px;
+	font-size: 1.4rem;
+	padding: 0;
+	color: #e2e8f0;
+	background: rgba(148, 163, 184, 0.14);
+}
+
+.tab-row {
+	margin-bottom: 16px;
+}
+
+.tab-row button.active {
+	color: #0f172a;
+	background: linear-gradient(135deg, #f8fafc 0%, #bfdbfe 100%);
+}
+
+.tab-content {
+	display: grid;
+	gap: 16px;
+}
+
+.modal-form {
+	display: grid;
+	gap: 14px;
+}
+
+.modal-form label {
+	display: grid;
+	gap: 8px;
+}
+
+.modal-form input,
+.modal-form select,
+.modal-form textarea {
+	width: 100%;
+	border: 1px solid rgba(148, 163, 184, 0.24);
+	border-radius: 14px;
+	background: rgba(15, 23, 42, 0.95);
+	color: #f8fafc;
+	padding: 12px 14px;
+	outline: none;
+}
+
+.modal-form textarea {
+	min-height: 120px;
+	resize: vertical;
+}
+
+.modal-actions {
+	justify-content: flex-end;
+}
+
+.report-summary {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 12px;
+	margin-bottom: 18px;
+}
+
+.report-summary p {
+	margin: 0;
+	padding: 14px;
+	border-radius: 16px;
+	background: rgba(148, 163, 184, 0.1);
+}
+
+.report-table {
+	border-radius: 18px;
+	overflow: hidden;
+}
+
+@media (max-width: 860px) {
+	.dashboard-header {
+		flex-direction: column;
+	}
+
+	.floating-add,
+	.floating-report {
+		right: 16px;
+	}
+}

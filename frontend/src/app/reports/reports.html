@@ -1,1 +1,58 @@
-<p>reports works!</p>
+<section class="report-shell">
+	<header class="report-header">
+		<div>
+			<p class="eyebrow">Warehouse report</p>
+			<h1>Звіт складу</h1>
+			<p class="subtitle">Короткий підсумок по всьому обладнанню.</p>
+		</div>
+	</header>
+
+	<p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+	<p class="loading" *ngIf="loading">Завантаження...</p>
+
+	<ng-container *ngIf="report as summary">
+		<div class="stats-grid">
+			<div class="stat-card">
+				<span>Загальна кількість</span>
+				<strong>{{ summary.totalEquipment }}</strong>
+			</div>
+			<div class="stat-card">
+				<span>Вільне</span>
+				<strong>{{ summary.freeEquipment }}</strong>
+			</div>
+			<div class="stat-card">
+				<span>Призначене</span>
+				<strong>{{ summary.assignedEquipment }}</strong>
+			</div>
+			<div class="stat-card">
+				<span>Пошкоджене</span>
+				<strong>{{ summary.damagedEquipment }}</strong>
+			</div>
+		</div>
+
+		<div class="report-table-wrap">
+			<table>
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Назва</th>
+						<th>Тип</th>
+						<th>Серійний номер</th>
+						<th>Статус</th>
+						<th>Опис</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr *ngFor="let item of summary.equipment; trackBy: trackById">
+						<td>{{ item.id }}</td>
+						<td>{{ item.name }}</td>
+						<td>{{ item.type }}</td>
+						<td>{{ item.serial }}</td>
+						<td>{{ item.status }}</td>
+						<td>{{ item.description }}</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</ng-container>
+</section>
