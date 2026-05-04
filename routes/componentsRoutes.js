@@ -36,6 +36,11 @@ router.post('/api/components/add', requireApiAuth, requireApiAdmin, (req, res) =
 
 router.post('/update-item', requireAuth, (req, res) => {
     const { id, name, type, serial, status, description } = req.body;
+
+    if (status === 'призначене') {
+        return res.status(400).send('Use assign action to mark component as assigned');
+    }
+
     const item = { id, name, type, serial, status, description };
 
     db.update('components', item, (err) => {
@@ -48,6 +53,11 @@ router.post('/update-item', requireAuth, (req, res) => {
 
 router.post('/api/components/update', requireApiAuth, requireApiAdmin, (req, res) => {
     const { id, name, type, serial, status, description } = req.body;
+
+    if (status === 'призначене') {
+        return res.status(400).json({ message: 'Use assignment action to set assigned status' });
+    }
+
     const item = { id, name, type, serial, status, description };
 
     db.update('components', item, (err) => {

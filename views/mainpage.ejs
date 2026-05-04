@@ -197,19 +197,7 @@
             </form>
         </dialog>
 
-        <% if (user && user.role === 'admin') { %>
-            <button class="add-btn"
-                data-id
-                data-name
-                data-type
-                data-serial
-                data-status
-                data-description>
-                Додати обладнання
-            </button>
-            <!-- <button id="create-user-button">Створити користувача</button> -->
-            <button type="button" class="open-warehouse-report-modal">Звіт складу</button>
-        <% } %>
+        <!-- Admin controls are available inside the Admin Panel (Admin modal). Removed duplicate buttons from main page. -->
 
         <dialog id="addUserModal">
             <form action="/add-user" method="POST">

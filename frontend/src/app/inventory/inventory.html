@@ -7,12 +7,12 @@
 		</div>
 
 		<div class="header-actions">
-			<button type="button" class="secondary" (click)="loadDashboard()">Оновити</button>
-			<button type="button" class="secondary" (click)="logout()">Вийти</button>
-			<button *ngIf="isAdmin()" type="button" class="primary" (click)="openAdminPanel()">Панель адміністрування</button>
+			<button type="button" class="danger" (click)="logout()">Вийти</button>
+			<button *ngIf="isAdmin()" type="button" class="admin-btn" (click)="openAdminPanel()">Панель адміністрування</button>
 		</div>
 	</header>
 
+	<button *ngIf="isAdmin()" type="button" class="floating-add" (click)="openAddModal()">Додати обладнання</button>
 	<section class="status-row">
 		<p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
 		<p class="success" *ngIf="actionMessage">{{ actionMessage }}</p>
@@ -49,16 +49,16 @@
 					<td>
 						<div class="action-group" *ngIf="isAdmin(); else userActions">
 							<button type="button" class="danger" (click)="removeComponent(item.id)">Видалити</button>
-							<button type="button" class="secondary" (click)="openEditModal(item)">Редагувати</button>
-							<button *ngIf="isAssigned(item.id)" type="button" class="secondary" (click)="unassignComponent(item.id)">Зняти призначення</button>
+							<button type="button" class="edit" (click)="openEditModal(item)">Редагувати</button>
+							<button *ngIf="isAssigned(item.id)" type="button" class="warning" (click)="unassignComponent(item.id)">Зняти призначення</button>
 							<button *ngIf="!isAssigned(item.id) && item.status === 'ремонт'" type="button" class="secondary" (click)="fixComponent(item.id)">Відремонтовано</button>
 							<button *ngIf="!isAssigned(item.id) && item.status !== 'ремонт'" type="button" class="primary" (click)="openAssignModal(item)">Призначити користувачу</button>
 						</div>
 
 						<ng-template #userActions>
 							<div class="action-group">
-								<button type="button" class="secondary" (click)="returnComponent(item.id)">Повернути</button>
-								<button type="button" class="secondary" (click)="returnBrokenComponent(item.id)">Повернути з поломкою</button>
+								<button type="button" class="primary" (click)="returnComponent(item.id)">Повернути</button>
+								<button type="button" class="danger" (click)="returnBrokenComponent(item.id)">Повернути з поломкою</button>
 							</div>
 						</ng-template>
 					</td>
@@ -67,8 +67,7 @@
 		</table>
 	</section>
 
-	<button *ngIf="isAdmin()" type="button" class="floating-add" (click)="openAddModal()">Додати обладнання</button>
-	<button *ngIf="isAdmin()" type="button" class="floating-report" (click)="openReportModal()">Звіт складу</button>
+
 
 	<section class="modal-backdrop" *ngIf="showAdminPanel">
 		<div class="modal-card modal-wide">
@@ -87,7 +86,7 @@
 				<h3>Керування користувачами</h3>
 				<div class="action-group">
 					<button type="button" class="primary" (click)="openAddUserModal()">Створити користувача</button>
-					<button type="button" class="secondary" (click)="openDeleteUserModal()">Видалити користувача</button>
+					<button type="button" class="danger" (click)="openDeleteUserModal()">Видалити користувача</button>
 				</div>
 			</div>
 
@@ -129,7 +128,6 @@
 					<select formControlName="status">
 						<option value="вільне">Вільне</option>
 						<option value="ремонт">Ремонт</option>
-						<option value="призначене">Призначене</option>
 					</select>
 				</label>
 				<label><span>Опис</span><textarea formControlName="description"></textarea></label>

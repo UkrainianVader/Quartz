@@ -10,7 +10,7 @@ import { DashboardItem, DashboardResponse, DashboardService, DashboardUser, Ware
   selector: 'app-inventory',
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './inventory.html',
-  styleUrl: './inventory.css',
+  styleUrls: ['./inventory.css'],
 })
 export class Inventory implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -194,9 +194,9 @@ export class Inventory implements OnInit {
 
     this.actionMessage = '';
     this.dashboardService.addComponent(this.addForm.getRawValue()).pipe(finalize(() => this.loading = false)).subscribe({
-      next: () => {
+        next: () => {
         this.closeAllModals();
-        this.actionMessage = 'Component added';
+        this.actionMessage = 'Компонент додано';
         this.loadDashboard();
       },
       error: (error: unknown) => {
@@ -213,9 +213,9 @@ export class Inventory implements OnInit {
     }
 
     this.dashboardService.updateComponent(this.editForm.getRawValue()).subscribe({
-      next: () => {
+        next: () => {
         this.closeAllModals();
-        this.actionMessage = 'Component updated';
+        this.actionMessage = 'Компонент оновлено';
         this.loadDashboard();
       },
       error: (error: unknown) => {
@@ -233,9 +233,9 @@ export class Inventory implements OnInit {
 
     const { itemId, userId } = this.assignForm.getRawValue();
     this.dashboardService.assignComponent(Number(itemId), Number(userId)).subscribe({
-      next: () => {
+        next: () => {
         this.closeAllModals();
-        this.actionMessage = 'Component assigned';
+        this.actionMessage = 'Компонент призначено';
         this.loadDashboard();
       },
       error: (error: unknown) => {
@@ -252,9 +252,9 @@ export class Inventory implements OnInit {
     }
 
     this.dashboardService.addUser(this.addUserForm.getRawValue()).subscribe({
-      next: () => {
+        next: () => {
         this.closeAllModals();
-        this.actionMessage = 'User created';
+        this.actionMessage = 'Користувача створено';
         this.loadDashboard();
       },
       error: (error: unknown) => {
@@ -272,9 +272,9 @@ export class Inventory implements OnInit {
 
     const { userId } = this.deleteUserForm.getRawValue();
     this.dashboardService.deleteUser(Number(userId)).subscribe({
-      next: () => {
+        next: () => {
         this.closeAllModals();
-        this.actionMessage = 'User deleted';
+        this.actionMessage = 'Користувача видалено';
         this.loadDashboard();
       },
       error: (error: unknown) => {
@@ -287,7 +287,7 @@ export class Inventory implements OnInit {
   protected removeComponent(id: number): void {
     this.dashboardService.removeComponent(id).subscribe({
       next: () => {
-        this.actionMessage = 'Component deleted';
+        this.actionMessage = 'Компонент видалено';
         this.loadDashboard();
       },
       error: (error: unknown) => {
