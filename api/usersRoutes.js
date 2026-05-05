@@ -1,12 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
-<<<<<<<< HEAD:api/usersRoutes.js
 const db = require('../db/dbOperations');
 const { requireApiAuth, requireApiAdmin } = require('../middleware/auth');
-========
-const db = require('./db/dbOperations');
-const { requireApiAuth, requireApiAdmin } = require('./middleware/auth');
->>>>>>>> 705ca22d3c926000b4c195410cf1d0a028bf83c1:usersRoutes.js
 
 const router = express.Router();
 
