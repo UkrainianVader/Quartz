@@ -1,0 +1,287 @@
+<section class="dashboard-shell">
+	<header class="dashboard-header">
+		<div>
+			<p class="eyebrow">Arduino component manager</p>
+			<h1>{{ getTitle() }}</h1>
+			<p class="subtitle">Керування обладнанням, призначеннями та звітами.</p>
+		</div>
+
+		<div class="header-actions">
+			<button type="button" class="danger" (click)="logout()">Вийти</button>
+			<button *ngIf="isAdmin()" type="button" class="admin-btn" (click)="openAdminPanel()">Панель адміністрування</button>
+		</div>
+	</header>
+
+	<button *ngIf="isAdmin()" type="button" class="floating-add" (click)="openAddModal()">Додати обладнання</button>
+	<section class="status-row">
+		<p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+		<p class="success" *ngIf="actionMessage">{{ actionMessage }}</p>
+		<p class="loading" *ngIf="loading">Завантаження...</p>
+	</section>
+
+	<section class="table-card" *ngIf="!loading">
+		<table>
+			<thead>
+				<tr>
+					<th>ID</th>
+					<th>Назва</th>
+					<th>Тип</th>
+					<th>Серійний номер</th>
+					<th>Статус</th>
+					<th>Призначено користувачу</th>
+					<th>Опис</th>
+					<th>Дія</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr *ngFor="let item of getItems(); trackBy: trackById">
+					<td>{{ item.id }}</td>
+					<td>{{ item.name }}</td>
+					<td>{{ item.type }}</td>
+					<td>{{ item.serial }}</td>
+					<td>
+						<span class="status-pill" [class.is-repair]="item.status === 'ремонт'" [class.is-assigned]="item.status === 'призначене'">
+							{{ item.status }}
+						</span>
+					</td>
+					<td>{{ getAssignmentLabel(item.id) }}</td>
+					<td>{{ item.description }}</td>
+					<td>
+						<div class="action-group" *ngIf="isAdmin(); else userActions">
+							<button type="button" class="danger" (click)="removeComponent(item.id)">Видалити</button>
+							<button type="button" class="edit" (click)="openEditModal(item)">Редагувати</button>
+							<button *ngIf="isAssigned(item.id)" type="button" class="warning" (click)="unassignComponent(item.id)">Зняти призначення</button>
+							<button *ngIf="!isAssigned(item.id) && item.status === 'ремонт'" type="button" class="secondary" (click)="fixComponent(item.id)">Відремонтовано</button>
+							<button *ngIf="!isAssigned(item.id) && item.status !== 'ремонт'" type="button" class="primary" (click)="openAssignModal(item)">Призначити користувачу</button>
+						</div>
+
+						<ng-template #userActions>
+							<div class="action-group">
+								<button type="button" class="primary" (click)="returnComponent(item.id)">Повернути</button>
+								<button type="button" class="danger" (click)="returnBrokenComponent(item.id)">Повернути з поломкою</button>
+							</div>
+						</ng-template>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</section>
+
+
+
+	<section class="modal-backdrop" *ngIf="showAdminPanel">
+		<div class="modal-card modal-wide">
+			<div class="modal-header">
+				<h2>Панель адміністрування</h2>
+				<button type="button" class="icon-button" (click)="closeAdminPanel()">×</button>
+			</div>
+
+			<div class="tab-row">
+				<button type="button" [class.active]="activeAdminTab === 'users'" (click)="setAdminTab('users')">Користувачі</button>
+				<button type="button" [class.active]="activeAdminTab === 'equipment'" (click)="setAdminTab('equipment')">Обладнання</button>
+				<button type="button" [class.active]="activeAdminTab === 'db'" (click)="setAdminTab('db')">База даних</button>
+			</div>
+
+			<div class="tab-content" *ngIf="activeAdminTab === 'users'">
+				<h3>Керування користувачами</h3>
+				<div class="action-group">
+					<button type="button" class="primary" (click)="openAddUserModal()">Створити користувача</button>
+					<button type="button" class="danger" (click)="openDeleteUserModal()">Видалити користувача</button>
+				</div>
+			</div>
+
+			<div class="tab-content" *ngIf="activeAdminTab === 'equipment'">
+				<h3>Керування обладнанням</h3>
+				<div class="action-group">
+					<button type="button" class="primary" (click)="openAddModal()">Додати обладнання</button>
+					<button type="button" class="secondary" (click)="openReportModal()">Звіт складу</button>
+				</div>
+			</div>
+
+			<div class="tab-content" *ngIf="activeAdminTab === 'db'">
+				<p>Поки що пусто</p>
+			</div>
+		</div>
+	</section>
+
+	<section class="modal-backdrop" *ngIf="showEditModal">
+		<div class="modal-card">
+			<div class="modal-header">
+				<h2>Редагувати обладнання</h2>
+				<button type="button" class="icon-button" (click)="closeAllModals()">×</button>
+			</div>
+
+			<form [formGroup]="editForm" (ngSubmit)="submitEditItem()" class="modal-form">
+				<input type="hidden" formControlName="id" />
+				<label><span>Назва</span><input type="text" formControlName="name" /></label>
+				<label>
+					<span>Тип</span>
+					<select formControlName="type">
+						<option value="контролер">Контролер</option>
+						<option value="датчик">Датчик</option>
+						<option value="модуль">Модуль</option>
+					</select>
+				</label>
+				<label><span>Серійний номер</span><input type="text" formControlName="serial" /></label>
+				<label>
+					<span>Статус</span>
+					<select formControlName="status">
+						<option value="вільне">Вільне</option>
+						<option value="ремонт">Ремонт</option>
+					</select>
+				</label>
+				<label><span>Опис</span><textarea formControlName="description"></textarea></label>
+				<div class="action-group modal-actions">
+					<button type="button" class="secondary" (click)="closeAllModals()">Скасувати</button>
+					<button type="submit" class="primary">Зберегти</button>
+				</div>
+			</form>
+		</div>
+	</section>
+
+	<section class="modal-backdrop" *ngIf="showAddModal">
+		<div class="modal-card">
+			<div class="modal-header">
+				<h2>Додати обладнання</h2>
+				<button type="button" class="icon-button" (click)="closeAllModals()">×</button>
+			</div>
+
+			<form [formGroup]="addForm" (ngSubmit)="submitAddItem()" class="modal-form">
+				<label><span>Назва</span><input type="text" formControlName="name" /></label>
+				<label>
+					<span>Тип</span>
+					<select formControlName="type">
+						<option value="контролер">Контролер</option>
+						<option value="датчик">Датчик</option>
+						<option value="модуль">Модуль</option>
+					</select>
+				</label>
+				<label><span>Серійний номер</span><input type="text" formControlName="serial" /></label>
+				<label>
+					<span>Статус</span>
+					<select formControlName="status">
+						<option value="вільне">Вільне</option>
+						<option value="ремонт">Ремонт</option>
+					</select>
+				</label>
+				<label><span>Опис</span><textarea formControlName="description"></textarea></label>
+				<div class="action-group modal-actions">
+					<button type="button" class="secondary" (click)="closeAllModals()">Скасувати</button>
+					<button type="submit" class="primary">Додати компонент</button>
+				</div>
+			</form>
+		</div>
+	</section>
+
+	<section class="modal-backdrop" *ngIf="showAssignModal">
+		<div class="modal-card">
+			<div class="modal-header">
+				<h2>Призначити користувачу</h2>
+				<button type="button" class="icon-button" (click)="closeAllModals()">×</button>
+			</div>
+
+			<form [formGroup]="assignForm" (ngSubmit)="submitAssign()" class="modal-form">
+				<input type="hidden" formControlName="itemId" />
+				<label>
+					<span>Користувач</span>
+					<select formControlName="userId">
+						<option *ngFor="let user of getAssignableUsers(); trackBy: trackById" [value]="user.id">{{ user.username }}</option>
+					</select>
+				</label>
+				<div class="action-group modal-actions">
+					<button type="button" class="secondary" (click)="closeAllModals()">Скасувати</button>
+					<button type="submit" class="primary">Призначити</button>
+				</div>
+			</form>
+		</div>
+	</section>
+
+	<section class="modal-backdrop" *ngIf="showAddUserModal">
+		<div class="modal-card">
+			<div class="modal-header">
+				<h2>Створити користувача</h2>
+				<button type="button" class="icon-button" (click)="closeAllModals()">×</button>
+			</div>
+
+			<form [formGroup]="addUserForm" (ngSubmit)="submitAddUser()" class="modal-form">
+				<label><span>Логін</span><input type="text" formControlName="username" /></label>
+				<label><span>Пароль</span><input type="password" formControlName="password" /></label>
+				<label>
+					<span>Роль</span>
+					<select formControlName="role">
+						<option value="user">Користувач</option>
+						<option value="admin">Адміністратор</option>
+						<option value="teacher">Викладач</option>
+					</select>
+				</label>
+				<div class="action-group modal-actions">
+					<button type="button" class="secondary" (click)="closeAllModals()">Скасувати</button>
+					<button type="submit" class="primary">Створити користувача</button>
+				</div>
+			</form>
+		</div>
+	</section>
+
+	<section class="modal-backdrop" *ngIf="showDeleteUserModal">
+		<div class="modal-card">
+			<div class="modal-header">
+				<h2>Видалити користувача</h2>
+				<button type="button" class="icon-button" (click)="closeAllModals()">×</button>
+			</div>
+
+			<form [formGroup]="deleteUserForm" (ngSubmit)="submitDeleteUser()" class="modal-form">
+				<label>
+					<span>Користувач</span>
+					<select formControlName="userId">
+						<option *ngFor="let user of getAssignableUsers(); trackBy: trackById" [value]="user.id">{{ user.username }}</option>
+					</select>
+				</label>
+				<div class="action-group modal-actions">
+					<button type="button" class="secondary" (click)="closeAllModals()">Скасувати</button>
+					<button type="submit" class="danger">Видалити користувача</button>
+				</div>
+			</form>
+		</div>
+	</section>
+
+	<section class="modal-backdrop" *ngIf="showReportModal">
+		<div class="modal-card modal-wide">
+			<div class="modal-header">
+				<h2>Звіт складу</h2>
+				<button type="button" class="icon-button" (click)="closeAllModals()">×</button>
+			</div>
+
+			<ng-container *ngIf="getReport() as report">
+				<div class="report-summary">
+					<p>Загальна кількість обладнання: {{ report.totalEquipment }}</p>
+					<p>Вільне обладнання: {{ report.freeEquipment }}</p>
+					<p>Призначене обладнання: {{ report.assignedEquipment }}</p>
+					<p>Пошкоджене обладнання: {{ report.damagedEquipment }}</p>
+				</div>
+
+				<table class="report-table">
+					<thead>
+						<tr>
+							<th>ID</th>
+							<th>Назва</th>
+							<th>Тип</th>
+							<th>Серійний номер</th>
+							<th>Статус</th>
+							<th>Опис</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr *ngFor="let item of report.equipment; trackBy: trackById">
+							<td>{{ item.id }}</td>
+							<td>{{ item.name }}</td>
+							<td>{{ item.type }}</td>
+							<td>{{ item.serial }}</td>
+							<td>{{ item.status }}</td>
+							<td>{{ item.description }}</td>
+						</tr>
+					</tbody>
+				</table>
+			</ng-container>
+		</div>
+	</section>
+</section>
