@@ -1,0 +1,36 @@
+:host {
+	display: block;
+	min-height: 100dvh;
+}
+
+/* App-level helpers and layout tweaks */
+:host .main{
+	width:100%;
+	min-height:100dvh;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	padding:2rem 1rem;
+}
+
+:host .content{
+	max-width:1100px;
+	width:100%;
+	display:flex;
+	gap:1.25rem;
+	align-items:center;
+	justify-content:space-between;
+}
+
+:host h1{font-weight:600}
+
+/* make the pill links a bit cleaner */
+:host .pill{
+	padding:10px 14px;
+	border-radius:999px;
+	box-shadow:0 4px 12px rgba(40,40,70,0.06);
+}
+
+@media (max-width:650px){
+	:host .content{flex-direction:column;align-items:center}
+}
