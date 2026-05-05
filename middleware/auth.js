@@ -5,13 +5,6 @@ const requireAuth = (req, res, next) => {
     next();
 };
 
-const requireAdmin = (req, res, next) => {
-    if (!req.session.user || req.session.user.role !== 'admin') {
-        return res.status(403).send('Forbidden');
-    }
-    next();
-};
-
 const requireApiAuth = (req, res, next) => {
     if (!req.session.user) {
         return res.status(401).json({ message: 'Not authenticated' });
@@ -20,6 +13,24 @@ const requireApiAuth = (req, res, next) => {
     next();
 };
 
+const requireAdmin = (req, res, next) => {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+        return res.status(403).send('Forbidden');
+    }
+    next();
+};
+
+<<<<<<< HEAD
+const requireApiAuth = (req, res, next) => {
+    if (!req.session.user) {
+        return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    next();
+};
+
+=======
+>>>>>>> 705ca22d3c926000b4c195410cf1d0a028bf83c1
 const requireApiAdmin = (req, res, next) => {
     if (!req.session.user || req.session.user.role !== 'admin') {
         return res.status(403).json({ message: 'Forbidden' });

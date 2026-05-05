@@ -1,0 +1,20 @@
+* [33m6e220fe[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m ???
+* [33mb9cde0a[m fix: everything
+* [33m6e6911b[m[33m ([m[1;31mcoursework/legacy_frontend[m[33m, [m[1;32mlegacy_frontend[m[33m)[m moved warehouse report to modal window
+* [33m006b773[m users can return components
+* [33mc3f084d[m tweaks to db
+* [33m304652c[m idiot protection
+* [33m29c48d3[m removing users
+* [33mf701e4c[m tabs in admin panel
+* [33m177101d[m admin panel implementation, to be improved
+* [33m3aea7b6[m broken components implementation
+* [33m495a4c0[m assigned user info
+* [33mb4c3cc5[m oops, broke user creation. LOL
+* [33m59276f0[m tweaks
+* [33m2eb0051[m warehouse report, to be improved
+* [33m871b49b[m routes spiltted
+* [33m5ab2923[m hashing passwords, fix db init
+* [33m696e01c[m non-admins can only see their assigned equipment
+* [33m8046f80[m unassign components
+* [33mb1d2d62[m assign components
+* [33ma4ceb4a[m non-admins have no buttons now :)
