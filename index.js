@@ -1,12 +1,12 @@
 const express = require('express');
 const session = require('express-session');
 const dotenv = require('dotenv');
-const authRoutes = require('./routes/authRoutes');
-const mainRoutes = require('./routes/mainRoutes');
-const componentsRoutes = require('./routes/componentsRoutes');
-const assignmentsRoutes = require('./routes/assignmentsRoutes');
-const usersRoutes = require('./routes/usersRoutes');
-const reportRoutes = require('./routes/reportRoutes');
+const authRoutes = require('./api/authRoutes');
+const mainRoutes = require('./api/mainRoutes');
+const componentsRoutes = require('./api/componentsRoutes');
+const assignmentsRoutes = require('./api/assignmentsRoutes');
+const usersRoutes = require('./api/usersRoutes');
+const reportRoutes = require('./api/reportRoutes');
 dotenv.config();
 
 const app = express();
