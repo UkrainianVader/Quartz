@@ -65,7 +65,7 @@ const dbOperations = {
             'ALTER TABLE components AUTO_INCREMENT = 1',
             'ALTER TABLE users AUTO_INCREMENT = 1',
             // Create default admin user
-            "INSERT INTO users (username, password, role) VALUES ('admin', '$2b$10$gSvqqUNYjJlG2j.pT8R7zu8zO2xzVGfR9QdUGK3x0f4R2H2K8aEOe', 'admin')"
+            "INSERT INTO users (username, password, role) VALUES ('admin', '$2b$10$2KeTREOi0FUfJIPiKTIciOolRi7qGfjWVRscUirRAGdjPuAgXl9ni', 'admin')"
         ];
 
         let completed = 0;
