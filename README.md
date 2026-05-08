@@ -12,3 +12,7 @@ npm run dev
 ```
 
 The app is available at localhost:4200
+
+# API docs
+
+See [API.md](API.md) for full endpoint documentation.
