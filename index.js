@@ -7,6 +7,7 @@ const componentsRoutes = require('./api/componentsRoutes');
 const assignmentsRoutes = require('./api/assignmentsRoutes');
 const usersRoutes = require('./api/usersRoutes');
 const reportRoutes = require('./api/reportRoutes');
+const dbRoutes = require('./api/dbRoutes');
 dotenv.config();
 
 const app = express();
@@ -32,6 +33,7 @@ app.use('/', componentsRoutes);
 app.use('/', assignmentsRoutes);
 app.use('/', usersRoutes);
 app.use('/', reportRoutes);
+app.use('/', dbRoutes);
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)

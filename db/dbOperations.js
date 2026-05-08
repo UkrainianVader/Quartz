@@ -54,6 +54,47 @@ const dbOperations = {
             if (err) throw err;
             return result;
         });
+    },
+    reset: (callback) => {
+        // Delete all data from tables (in correct order to respect foreign key constraints)
+        const resetSequence = [
+            'DELETE FROM usage_history',
+            'DELETE FROM components',
+            'DELETE FROM users',
+            'ALTER TABLE usage_history AUTO_INCREMENT = 1',
+            'ALTER TABLE components AUTO_INCREMENT = 1',
+            'ALTER TABLE users AUTO_INCREMENT = 1',
+            // Create default admin user
+            "INSERT INTO users (username, password, role) VALUES ('admin', '$2b$10$gSvqqUNYjJlG2j.pT8R7zu8zO2xzVGfR9QdUGK3x0f4R2H2K8aEOe', 'admin')"
+        ];
+
+        let completed = 0;
+        let hasError = false;
+
+        const executeNext = () => {
+            if (completed >= resetSequence.length || hasError) {
+                if (callback) {
+                    return callback(hasError ? new Error('Reset failed') : null);
+                }
+                return;
+            }
+
+            const sql = resetSequence[completed];
+            completed++;
+
+            db.query(sql, function (err) {
+                if (err) {
+                    hasError = true;
+                    if (callback) {
+                        return callback(err);
+                    }
+                    return;
+                }
+                executeNext();
+            });
+        };
+
+        executeNext();
     }
 }
 

@@ -31,7 +31,15 @@ export class Inventory implements OnInit {
   protected showAddUserModal = false;
   protected showDeleteUserModal = false;
   protected showReportModal = false;
+  protected showFilters = false;
+  protected showResetDbConfirm = false;
   protected activeAdminTab: 'users' | 'equipment' | 'db' = 'users';
+
+  protected readonly filterForm = this.fb.nonNullable.group({
+    searchQuery: [''],
+    statusFilter: [''],
+    typeFilter: ['']
+  });
 
   protected readonly editForm = this.fb.nonNullable.group({
     id: [0, [Validators.required]],
@@ -184,6 +192,27 @@ export class Inventory implements OnInit {
     this.showAddUserModal = false;
     this.showDeleteUserModal = false;
     this.showReportModal = false;
+    this.showResetDbConfirm = false;
+  }
+
+  protected openResetDbConfirm(): void {
+    this.showResetDbConfirm = true;
+  }
+
+  protected submitResetDb(): void {
+    this.loading = true;
+    this.dashboardService.resetDatabase().subscribe({
+      next: () => {
+        this.closeAllModals();
+        this.actionMessage = 'База даних скинута';
+        this.loadDashboard();
+      },
+      error: (error: unknown) => {
+        this.loading = false;
+        this.errorMessage = this.extractMessage(error, 'Failed to reset database');
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   protected submitAddItem(): void {
@@ -352,7 +381,44 @@ export class Inventory implements OnInit {
   }
 
   protected getItems(): DashboardItem[] {
-    return this.dashboard?.items ?? [];
+    const allItems = this.dashboard?.items ?? [];
+    const searchQuery = this.filterForm.get('searchQuery')?.value.toLowerCase() || '';
+    const statusFilter = this.filterForm.get('statusFilter')?.value || '';
+    const typeFilter = this.filterForm.get('typeFilter')?.value || '';
+
+    return allItems.filter((item) => {
+      const matchesSearch = !searchQuery || 
+        item.name.toLowerCase().includes(searchQuery) ||
+        item.serial.toLowerCase().includes(searchQuery) ||
+        item.type.toLowerCase().includes(searchQuery) ||
+        item.description.toLowerCase().includes(searchQuery);
+
+      const matchesStatus = !statusFilter || item.status === statusFilter;
+      const matchesType = !typeFilter || item.type === typeFilter;
+
+      return matchesSearch && matchesStatus && matchesType;
+    });
+  }
+
+  protected getAvailableTypes(): string[] {
+    const types = new Set((this.dashboard?.items ?? []).map(item => item.type));
+    return Array.from(types).sort();
+  }
+
+  protected getAvailableStatuses(): string[] {
+    return ['вільне', 'призначене', 'ремонт'];
+  }
+
+  protected clearFilters(): void {
+    this.filterForm.reset({
+      searchQuery: '',
+      statusFilter: '',
+      typeFilter: ''
+    });
+  }
+
+  protected toggleFilters(): void {
+    this.showFilters = !this.showFilters;
   }
 
   protected getUsers(): DashboardUser[] {

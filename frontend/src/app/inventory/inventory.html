@@ -7,6 +7,10 @@
 		</div>
 
 		<div class="header-actions">
+			<button type="button" class="filter-toggle-btn" (click)="toggleFilters()">
+				<span class="filter-icon">⚙️</span>
+				{{ showFilters ? 'Сховати фільтри' : 'Показати фільтри' }}
+			</button>
 			<button type="button" class="danger" (click)="logout()">Вийти</button>
 			<button *ngIf="isAdmin()" type="button" class="admin-btn" (click)="openAdminPanel()">Панель адміністрування</button>
 		</div>
@@ -17,6 +21,33 @@
 		<p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
 		<p class="success" *ngIf="actionMessage">{{ actionMessage }}</p>
 		<p class="loading" *ngIf="loading">Завантаження...</p>
+	</section>
+
+	<section class="filter-card" [class.filter-visible]="showFilters" *ngIf="!loading">
+		<form [formGroup]="filterForm" class="filter-form">
+			<div class="filter-row">
+				<label class="search-label">
+					<span>Пошук</span>
+					<input type="text" formControlName="searchQuery" placeholder="Назва, серійний номер, тип..." />
+				</label>
+				<label>
+					<span>Статус</span>
+					<select formControlName="statusFilter">
+						<option value="">Всі статуси</option>
+						<option *ngFor="let status of getAvailableStatuses()" [value]="status">{{ status }}</option>
+					</select>
+				</label>
+				<label>
+					<span>Тип</span>
+					<select formControlName="typeFilter">
+						<option value="">Всі типи</option>
+						<option *ngFor="let type of getAvailableTypes()" [value]="type">{{ type }}</option>
+					</select>
+				</label>
+				<button type="button" class="secondary-small" (click)="clearFilters()">Очистити фільтри</button>
+			</div>
+			<p class="filter-info">Знайдено: {{ getItems().length }} з {{ (dashboard?.items ?? []).length }} компонентів</p>
+		</form>
 	</section>
 
 	<section class="table-card" *ngIf="!loading">
@@ -99,7 +130,11 @@
 			</div>
 
 			<div class="tab-content" *ngIf="activeAdminTab === 'db'">
-				<p>Поки що пусто</p>
+				<h3>Керування базою даних</h3>
+				<p style="color: #94a3b8; margin: 12px 0 20px 0; font-size: 0.9rem;">Вимкніть всіх користувачів перед скиданням.</p>
+				<div class="action-group">
+					<button type="button" class="danger" (click)="openResetDbConfirm()">Скинути базу даних</button>
+				</div>
 			</div>
 		</div>
 	</section>
@@ -282,6 +317,22 @@
 					</tbody>
 				</table>
 			</ng-container>
+		</div>
+	</section>
+
+	<section class="modal-backdrop" *ngIf="showResetDbConfirm">
+		<div class="modal-card">
+			<div class="modal-header">
+				<h2>Скинути базу даних</h2>
+				<button type="button" class="icon-button" (click)="closeAllModals()">×</button>
+			</div>
+
+			<p style="margin: 0 0 20px 0; color: #475569;">Ви впевнені? Це видалить всі компоненти, користувачів та історію використання. Цю дію неможливо скасувати.</p>
+
+			<div class="action-group modal-actions">
+				<button type="button" class="secondary" (click)="closeAllModals()">Скасувати</button>
+				<button type="button" class="danger" (click)="submitResetDb()">Скинути базу</button>
+			</div>
 		</div>
 	</section>
 </section>

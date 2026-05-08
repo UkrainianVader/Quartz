@@ -104,4 +104,8 @@ export class DashboardService {
   deleteUser(id: number): Observable<void> {
     return this.http.post<void>('/api/users/delete', { id }, { withCredentials: true });
   }
+
+  resetDatabase(): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>('/api/db/reset', {}, { withCredentials: true });
+  }
 }

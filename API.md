@@ -354,3 +354,17 @@ The backend currently uses Ukrainian status strings:
 - `вільне` (free)
 - `призначене` (assigned)
 - `ремонт` (repair)
+
+---
+
+## Database
+
+### POST /api/db/reset
+
+Reset entire database to initial state. Deletes all components, users, usage history, and recreates default admin user.
+
+**⚠️ WARNING: This operation cannot be undone. All data will be permanently deleted.**
+
+- Auth required: admin
+- Body: `{}`
+- Success `200`: `{ "message": "Database reset successfully" }`
