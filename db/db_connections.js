@@ -46,6 +46,39 @@ const ensureUsageHistoryTable = (callback) => {
   )`, callback);
 };
 
+const ensureSearchComponentsProcedure = (callback) => {
+  con.query('DROP PROCEDURE IF EXISTS search_components', function(dropErr) {
+    if (dropErr) {
+      return callback(dropErr);
+    }
+
+    con.query(`CREATE PROCEDURE search_components(
+      IN p_query VARCHAR(255),
+      IN p_status VARCHAR(255),
+      IN p_type VARCHAR(255),
+      IN p_user_id INT,
+      IN p_is_admin TINYINT
+    )
+    SELECT DISTINCT c.*
+    FROM components c
+    LEFT JOIN usage_history uh
+      ON uh.equipment_id = c.id
+      AND uh.date_returned IS NULL
+    WHERE
+      (p_is_admin = 1 OR uh.user_id = p_user_id)
+      AND (
+        p_query IS NULL OR p_query = ''
+        OR LOWER(c.name) LIKE CONCAT('%', LOWER(p_query), '%')
+        OR LOWER(c.serial) LIKE CONCAT('%', LOWER(p_query), '%')
+        OR LOWER(c.type) LIKE CONCAT('%', LOWER(p_query), '%')
+        OR LOWER(IFNULL(c.description, '')) LIKE CONCAT('%', LOWER(p_query), '%')
+      )
+      AND (p_status IS NULL OR p_status = '' OR c.status = p_status)
+      AND (p_type IS NULL OR p_type = '' OR c.type = p_type)
+    ORDER BY c.id DESC`, callback);
+  });
+};
+
 const ensureAdminUser = (callback) => {
   bcrypt.hash('admin', 10, function(hashErr, hashedPassword) {
     if (hashErr) {
@@ -78,9 +111,13 @@ con.connect(function(err) {
           ensureUsageHistoryTable(function(usageErr) {
             if (usageErr) throw usageErr;
 
-            ensureAdminUser(function(adminErr) {
-              if (adminErr) throw adminErr;
-              console.log("Connected!");
+            ensureSearchComponentsProcedure(function(procErr) {
+              if (procErr) throw procErr;
+
+              ensureAdminUser(function(adminErr) {
+                if (adminErr) throw adminErr;
+                console.log("Connected!");
+              });
             });
           });
         });

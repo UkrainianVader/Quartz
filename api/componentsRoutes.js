@@ -9,6 +9,22 @@ const sendApiError = (res, error) => {
     return res.status(500).json({ message: 'Server error' });
 };
 
+router.get('/api/components/search', requireApiAuth, (req, res) => {
+    const query = String(req.query.query ?? '');
+    const status = String(req.query.status ?? '');
+    const type = String(req.query.type ?? '');
+    const userId = Number(req.session.user?.id ?? 0);
+    const isAdmin = req.session.user?.role === 'admin';
+
+    db.searchComponents(query, status, type, userId, isAdmin, (err, items) => {
+        if (err) {
+            return sendApiError(res, err);
+        }
+
+        return res.json({ items });
+    });
+});
+
 router.post('/api/components/add', requireApiAuth, requireApiAdmin, (req, res) => {
     const { name, type, serial, description, status } = req.body;
     const item = { name, type, serial, status, description };

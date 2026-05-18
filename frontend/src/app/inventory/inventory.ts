@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { finalize } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, finalize, takeUntil } from 'rxjs';
 import { AuthService } from '../auth.service';
 import { DashboardItem, DashboardResponse, DashboardService, DashboardUser, WarehouseReport } from './dashboard.service';
 
@@ -23,6 +23,9 @@ export class Inventory implements OnInit {
   protected errorMessage = '';
   protected actionMessage = '';
   protected dashboard: DashboardResponse | null = null;
+  protected filteredItems: DashboardItem[] = [];
+
+  private readonly destroy$ = new Subject<void>();
 
   protected showAdminPanel = false;
   protected showEditModal = false;
@@ -74,7 +77,20 @@ export class Inventory implements OnInit {
   });
 
   ngOnInit(): void {
+    this.filterForm.valueChanges
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => this.runServerSearch());
+
     this.loadDashboard();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   protected loadDashboard(): void {
@@ -85,6 +101,7 @@ export class Inventory implements OnInit {
     this.dashboardService.getDashboard().subscribe({
       next: (dashboard) => {
         this.dashboard = dashboard;
+        this.filteredItems = dashboard.items ?? [];
         this.loading = false;
 
         const firstAssignableUser = this.getAssignableUsers()[0];
@@ -381,23 +398,7 @@ export class Inventory implements OnInit {
   }
 
   protected getItems(): DashboardItem[] {
-    const allItems = this.dashboard?.items ?? [];
-    const searchQuery = this.filterForm.get('searchQuery')?.value.toLowerCase() || '';
-    const statusFilter = this.filterForm.get('statusFilter')?.value || '';
-    const typeFilter = this.filterForm.get('typeFilter')?.value || '';
-
-    return allItems.filter((item) => {
-      const matchesSearch = !searchQuery || 
-        item.name.toLowerCase().includes(searchQuery) ||
-        item.serial.toLowerCase().includes(searchQuery) ||
-        item.type.toLowerCase().includes(searchQuery) ||
-        item.description.toLowerCase().includes(searchQuery);
-
-      const matchesStatus = !statusFilter || item.status === statusFilter;
-      const matchesType = !typeFilter || item.type === typeFilter;
-
-      return matchesSearch && matchesStatus && matchesType;
-    });
+    return this.filteredItems;
   }
 
   protected getAvailableTypes(): string[] {
@@ -459,5 +460,26 @@ export class Inventory implements OnInit {
     }
 
     return fallback;
+  }
+
+  private runServerSearch(): void {
+    if (!this.dashboard) {
+      return;
+    }
+
+    const query = String(this.filterForm.get('searchQuery')?.value ?? '');
+    const status = String(this.filterForm.get('statusFilter')?.value ?? '');
+    const type = String(this.filterForm.get('typeFilter')?.value ?? '');
+
+    this.dashboardService.searchComponents(query, status, type).subscribe({
+      next: (items) => {
+        this.filteredItems = items;
+        this.cdr.detectChanges();
+      },
+      error: (error: unknown) => {
+        this.errorMessage = this.extractMessage(error, 'Failed to search components');
+        this.cdr.detectChanges();
+      }
+    });
   }
 }

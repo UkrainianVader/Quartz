@@ -55,6 +55,20 @@ const dbOperations = {
             return result;
         });
     },
+    searchComponents: (query, status, type, userId, isAdmin, callback) => {
+        const sql_query = 'CALL search_components(?, ?, ?, ?, ?)';
+        const values = [query || '', status || '', type || '', Number(userId) || 0, isAdmin ? 1 : 0];
+
+        db.query(sql_query, values, function (err, result) {
+            if (callback) {
+                // mysql2 returns procedure rows in the first element.
+                const rows = Array.isArray(result) ? result[0] : result;
+                return callback(err, rows);
+            }
+            if (err) throw err;
+            return result;
+        });
+    },
     reset: (callback) => {
         // Delete all data from tables (in correct order to respect foreign key constraints)
         const resetSequence = [

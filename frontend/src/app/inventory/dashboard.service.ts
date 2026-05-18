@@ -69,6 +69,17 @@ export class DashboardService {
     return this.http.post<void>('/api/components/add', value, { withCredentials: true });
   }
 
+  searchComponents(query: string, status: string, type: string): Observable<DashboardItem[]> {
+    return this.http.get<{ items: DashboardItem[] }>('/api/components/search', {
+      withCredentials: true,
+      params: {
+        query,
+        status,
+        type
+      }
+    }).pipe(map((response) => response.items));
+  }
+
   updateComponent(value: ComponentFormValue): Observable<void> {
     return this.http.post<void>('/api/components/update', value, { withCredentials: true });
   }
