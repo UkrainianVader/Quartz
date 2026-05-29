@@ -1,10 +1,11 @@
-import { Component, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, ChangeDetectorRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs';
 import { AuthService } from '../auth.service';
+import { ServerInfo, ServerInfoService } from '../server-info.service';
 
 @Component({
   selector: 'app-login',
@@ -12,19 +13,39 @@ import { AuthService } from '../auth.service';
   templateUrl: './login.html',
   styleUrls: ['./login.css'],
 })
-export class Login {
+export class Login implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+  private readonly serverInfoService = inject(ServerInfoService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
   protected errorMessage = '';
   protected isSubmitting = false;
+  protected serverInfo: ServerInfo | null = null;
+  protected serverInfoLoading = true;
+  protected serverInfoError = false;
 
   protected readonly form = this.fb.nonNullable.group({
     username: ['', [Validators.required]],
     password: ['', [Validators.required]]
   });
+
+  ngOnInit(): void {
+    this.serverInfoService.getServerInfo().subscribe({
+      next: (serverInfo) => {
+        this.serverInfo = serverInfo;
+        this.serverInfoLoading = false;
+        this.serverInfoError = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.serverInfoLoading = false;
+        this.serverInfoError = true;
+        this.cdr.detectChanges();
+      }
+    });
+  }
 
   protected submit(): void {
     this.errorMessage = '';

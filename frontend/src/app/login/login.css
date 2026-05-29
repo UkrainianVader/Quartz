@@ -17,6 +17,56 @@
 	text-align:left;
 }
 
+.network-card{
+	margin-top:20px;
+	padding-top:18px;
+	border-top:1px solid rgba(15,23,42,0.08);
+	display:grid;
+	gap:10px;
+}
+
+.network-eyebrow{
+	margin:0;
+	font-size:0.75rem;
+	text-transform:uppercase;
+	letter-spacing:0.08em;
+	color:var(--muted,#6b7280);
+}
+
+.network-title{
+	margin:0;
+	font-size:0.92rem;
+	line-height:1.45;
+	color:#0f1720;
+}
+
+.network-primary{
+	margin:0;
+	font-weight:700;
+	color:#0f1720;
+	word-break:break-word;
+}
+
+.network-list{
+	display:grid;
+	gap:8px;
+}
+
+.network-list a{
+	display:block;
+	padding:10px 12px;
+	border-radius:10px;
+	background:#f8fafc;
+	border:1px solid rgba(15,23,42,0.08);
+	color:#1d4ed8;
+	text-decoration:none;
+	word-break:break-word;
+}
+
+.network-list a:hover{
+	background:#eff6ff;
+}
+
 .login-card .eyebrow{
 	font-size:0.875rem;
 	color:var(--muted,#6b7280);

@@ -20,5 +20,20 @@
 				{{ isSubmitting ? 'Вхід...' : 'Увійти' }}
 			</button>
 		</form>
+
+		<section class="network-card">
+			<p class="network-eyebrow">Підключення з телефону</p>
+			<ng-container *ngIf="serverInfoLoading">
+				<p class="network-title">Визначаю локальну адресу цього комп’ютера...</p>
+				<p class="network-primary">Зачекайте секунду</p>
+			</ng-container>
+
+			<ng-container *ngIf="!serverInfoLoading && serverInfo as info">
+				<p class="network-title">Відкрийте цю адресу у мобільній програмі.</p>
+				<p class="network-primary">{{ info.primaryUrl }}</p>
+			</ng-container>
+
+			<p class="network-title" *ngIf="serverInfoError">Не вдалося автоматично знайти LAN-адресу. Перевірте IP вручну в терміналі.</p>
+		</section>
 	</div>
 </section>
