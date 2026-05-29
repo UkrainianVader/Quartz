@@ -470,16 +470,18 @@ export class Inventory implements OnInit {
     const query = String(this.filterForm.get('searchQuery')?.value ?? '');
     const status = String(this.filterForm.get('statusFilter')?.value ?? '');
     const type = String(this.filterForm.get('typeFilter')?.value ?? '');
+    const normalizedQuery = query.trim().toLowerCase();
 
-    this.dashboardService.searchComponents(query, status, type).subscribe({
-      next: (items) => {
-        this.filteredItems = items;
-        this.cdr.detectChanges();
-      },
-      error: (error: unknown) => {
-        this.errorMessage = this.extractMessage(error, 'Failed to search components');
-        this.cdr.detectChanges();
-      }
+    this.filteredItems = (this.dashboard.items ?? []).filter((item) => {
+      const matchesQuery = !normalizedQuery || [item.name, item.type, item.serial, item.status, item.description, String(item.id)]
+        .filter((value) => value !== undefined && value !== null)
+        .some((value) => String(value).toLowerCase().includes(normalizedQuery));
+      const matchesStatus = !status || item.status === status;
+      const matchesType = !type || item.type === type;
+
+      return matchesQuery && matchesStatus && matchesType;
     });
+
+    this.cdr.detectChanges();
   }
 }
