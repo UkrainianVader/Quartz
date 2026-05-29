@@ -357,6 +357,68 @@ The backend currently uses Ukrainian status strings:
 
 ---
 
+## System / Mobile Companion
+
+### GET /api/server-info
+
+Returns local network URLs for opening the backend from another device on the same LAN.
+
+- Auth required: no
+- Success `200`:
+
+```json
+{
+  "port": 3000,
+  "localIps": ["192.168.0.123"],
+  "localUrls": ["http://192.168.0.123:3000"],
+  "localhostUrl": "http://localhost:3000",
+  "primaryUrl": "http://192.168.0.123:3000"
+}
+```
+
+### GET /api/mobile-companion
+
+Returns whether an APK was found in the project root and where to download it.
+
+- Auth required: no
+- Success `200` (APK exists):
+
+```json
+{
+  "available": true,
+  "fileName": "mobile-companion.apk",
+  "downloadPath": "/api/mobile-companion/download"
+}
+```
+
+- Success `200` (APK missing):
+
+```json
+{
+  "available": false,
+  "fileName": null,
+  "downloadPath": null
+}
+```
+
+### GET /api/mobile-companion/download
+
+Downloads APK file from project root.
+
+- Auth required: no
+- Success: binary file download
+- Errors:
+  - `404` `{ "message": "APK file not found in project root" }`
+  - `500` `{ "message": "Failed to download APK" }`
+
+### APK Naming Rules
+
+- The backend accepts any file with `.apk` extension in the project root.
+- Recommended name: `mobile-companion.apk`.
+- If multiple `.apk` files exist, the newest one (by modification time) is used.
+
+---
+
 ## Database
 
 ### POST /api/db/reset

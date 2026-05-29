@@ -1,10 +1,12 @@
 .login-shell{
 	min-height:100dvh;
 	display:flex;
+	flex-direction:row;
 	align-items:center;
 	justify-content:center;
 	padding:2rem;
 	background:transparent;
+	gap:20px;
 }
 
 .login-card{
@@ -65,6 +67,84 @@
 
 .network-list a:hover{
 	background:#eff6ff;
+}
+
+.companion-panel{
+	width:100%;
+	max-width:420px;
+	border-radius:16px;
+	padding:18px;
+	background:linear-gradient(135deg, rgba(15,23,42,0.9) 0%, rgba(30,41,59,0.92) 100%);
+	color:#e2e8f0;
+	box-shadow:0 16px 40px rgba(2,6,23,0.28);
+	text-align:center;
+	animation:panel-enter 520ms cubic-bezier(0.22,1,0.36,1);
+}
+
+.companion-eyebrow{
+	margin:0;
+	font-size:0.74rem;
+	text-transform:uppercase;
+	letter-spacing:0.1em;
+	color:#94a3b8;
+}
+
+.companion-panel h2{
+	margin:8px 0 12px;
+	font-size:1.15rem;
+	color:#f8fafc;
+}
+
+.companion-note{
+	margin:10px 0 0;
+	font-size:0.9rem;
+	line-height:1.45;
+	color:#cbd5e1;
+}
+
+.qr-wrapper{
+	width:220px;
+	height:220px;
+	margin:0 auto;
+	padding:10px;
+	border-radius:14px;
+	background:#ffffff;
+	box-shadow:0 14px 30px rgba(15,23,42,0.24);
+}
+
+.qr-wrapper img{
+	display:block;
+	width:100%;
+	height:100%;
+	border-radius:8px;
+}
+
+.download-link{
+	display:inline-block;
+	margin-top:12px;
+	padding:10px 14px;
+	border-radius:10px;
+	font-weight:600;
+	text-decoration:none;
+	color:#062e1e;
+	background:linear-gradient(135deg, #34d399 0%, #10b981 100%);
+	transition:transform 180ms ease, filter 180ms ease;
+}
+
+.download-link:hover{
+	transform:translateY(-2px);
+	filter:brightness(1.05);
+}
+
+@keyframes panel-enter{
+	from{
+		opacity:0;
+		transform:translateY(14px) scale(0.98);
+	}
+	to{
+		opacity:1;
+		transform:translateY(0) scale(1);
+	}
 }
 
 .login-card .eyebrow{
@@ -131,6 +211,9 @@
 }
 
 @media (max-width:480px){
+	.login-shell{flex-direction:column;align-items:center}
 	.login-card{padding:20px;margin-inline:8px}
+	.companion-panel{padding:16px;margin-inline:8px}
+	.qr-wrapper{width:190px;height:190px}
 }
 

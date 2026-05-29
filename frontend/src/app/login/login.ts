@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs';
 import { AuthService } from '../auth.service';
+import { MobileCompanionService } from '../mobile-companion.service';
 import { ServerInfo, ServerInfoService } from '../server-info.service';
 
 @Component({
@@ -17,6 +18,7 @@ export class Login implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly serverInfoService = inject(ServerInfoService);
+  private readonly mobileCompanionService = inject(MobileCompanionService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -25,6 +27,12 @@ export class Login implements OnInit {
   protected serverInfo: ServerInfo | null = null;
   protected serverInfoLoading = true;
   protected serverInfoError = false;
+  protected mobileCompanionLoading = true;
+  protected mobileCompanionError = false;
+  protected mobileCompanionAvailable = false;
+  protected mobileCompanionFileName = '';
+  protected mobileCompanionUrl = '';
+  protected mobileCompanionQrUrl = '';
 
   protected readonly form = this.fb.nonNullable.group({
     username: ['', [Validators.required]],
@@ -37,14 +45,58 @@ export class Login implements OnInit {
         this.serverInfo = serverInfo;
         this.serverInfoLoading = false;
         this.serverInfoError = false;
+        this.loadMobileCompanionInfo(serverInfo);
         this.cdr.detectChanges();
       },
       error: () => {
         this.serverInfoLoading = false;
         this.serverInfoError = true;
+        this.mobileCompanionLoading = false;
+        this.mobileCompanionError = true;
         this.cdr.detectChanges();
       }
     });
+  }
+
+  private loadMobileCompanionInfo(serverInfo: ServerInfo): void {
+    this.mobileCompanionService.getInfo().subscribe({
+      next: (info) => {
+        this.mobileCompanionLoading = false;
+        this.mobileCompanionError = false;
+        this.mobileCompanionAvailable = Boolean(info.available && info.downloadPath);
+        this.mobileCompanionFileName = info.fileName || 'Warehouse Helper.apk';
+
+        if (this.mobileCompanionAvailable && info.downloadPath) {
+          this.mobileCompanionUrl = this.buildAbsoluteUrl(serverInfo.primaryUrl, info.downloadPath);
+          this.mobileCompanionQrUrl = this.buildQrCodeImageUrl(this.mobileCompanionUrl);
+        } else {
+          this.mobileCompanionUrl = '';
+          this.mobileCompanionQrUrl = '';
+        }
+
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.mobileCompanionLoading = false;
+        this.mobileCompanionError = true;
+        this.mobileCompanionAvailable = false;
+        this.mobileCompanionUrl = '';
+        this.mobileCompanionQrUrl = '';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private buildAbsoluteUrl(baseUrl: string, relativePath: string): string {
+    const normalizedBaseUrl = baseUrl.replace(/\/+$/, '');
+    const normalizedPath = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
+
+    return `${normalizedBaseUrl}${normalizedPath}`;
+  }
+
+  private buildQrCodeImageUrl(targetUrl: string): string {
+    const encodedUrl = encodeURIComponent(targetUrl);
+    return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=0&data=${encodedUrl}`;
   }
 
   protected submit(): void {

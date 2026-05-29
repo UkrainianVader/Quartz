@@ -36,4 +36,27 @@
 			<p class="network-title" *ngIf="serverInfoError">Не вдалося автоматично знайти LAN-адресу. Перевірте IP вручну в терміналі.</p>
 		</section>
 	</div>
+
+	<section class="companion-panel" *ngIf="!serverInfoError">
+		<p class="companion-eyebrow">Mobile Companion APK</p>
+		<h2>Скануйте QR для завантаження</h2>
+
+		<ng-container *ngIf="mobileCompanionLoading">
+			<p class="companion-note">Шукаю APK файл у корені проєкту...</p>
+		</ng-container>
+
+		<ng-container *ngIf="!mobileCompanionLoading && mobileCompanionAvailable">
+			<div class="qr-wrapper">
+				<img [src]="mobileCompanionQrUrl" alt="QR code for mobile companion APK download" />
+			</div>
+			<p class="companion-note">Файл: {{ mobileCompanionFileName }}</p>
+			<a class="download-link" [href]="mobileCompanionUrl">Завантажити APK напряму</a>
+		</ng-container>
+
+		<p class="companion-note" *ngIf="!mobileCompanionLoading && !mobileCompanionAvailable && !mobileCompanionError">
+			APK не знайдено. Покладіть .apk файл у корінь проєкту, і QR з’явиться автоматично.
+		</p>
+
+		<p class="companion-note" *ngIf="mobileCompanionError">Не вдалося підготувати посилання для APK.</p>
+	</section>
 </section>
