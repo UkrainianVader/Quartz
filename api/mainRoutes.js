@@ -62,7 +62,7 @@ router.get('/api/dashboard', requireApiAuth, (req, res) => {
                 return res.status(500).json({ message: 'DB error' });
             }
 
-            db.read('usage_history', 'id, equipment_id, user_id, username, date_returned', (usageErr, usageResults) => {
+            db.read('usage_history', 'id, equipment_id, user_id, username, date_returned, returned_broken', (usageErr, usageResults) => {
                 if (usageErr) {
                     console.error(usageErr);
                     return res.status(500).json({ message: 'DB error' });

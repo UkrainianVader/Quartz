@@ -40,10 +40,36 @@ const ensureUsageHistoryTable = (callback) => {
     \`equipment_id\` int NOT NULL,
     \`date_taken\` datetime DEFAULT CURRENT_TIMESTAMP,
     \`date_returned\` datetime DEFAULT NULL,
+    \`returned_broken\` tinyint(1) NOT NULL DEFAULT 0,
     PRIMARY KEY (\`id\`),
     CONSTRAINT \`fk_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE SET NULL,
     CONSTRAINT \`fk_equipment\` FOREIGN KEY (\`equipment_id\`) REFERENCES \`components\` (\`id\`) ON DELETE CASCADE
   )`, callback);
+};
+
+const ensureUsageHistoryReturnedBrokenColumn = (callback) => {
+  con.query(
+    `SELECT COUNT(*) AS columnCount
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = ?
+       AND TABLE_NAME = 'usage_history'
+       AND COLUMN_NAME = 'returned_broken'`,
+    [process.env.DB_NAME],
+    (err, rows) => {
+      if (err) {
+        return callback(err);
+      }
+
+      if (rows[0]?.columnCount > 0) {
+        return callback();
+      }
+
+      con.query(
+        'ALTER TABLE `usage_history` ADD COLUMN `returned_broken` tinyint(1) NOT NULL DEFAULT 0 AFTER `date_returned`',
+        callback
+      );
+    }
+  );
 };
 
 const ensureSearchComponentsProcedure = (callback) => {
@@ -111,12 +137,16 @@ con.connect(function(err) {
           ensureUsageHistoryTable(function(usageErr) {
             if (usageErr) throw usageErr;
 
-            ensureSearchComponentsProcedure(function(procErr) {
-              if (procErr) throw procErr;
+            ensureUsageHistoryReturnedBrokenColumn(function(schemaErr) {
+              if (schemaErr) throw schemaErr;
 
-              ensureAdminUser(function(adminErr) {
-                if (adminErr) throw adminErr;
-                console.log("Connected!");
+              ensureSearchComponentsProcedure(function(procErr) {
+                if (procErr) throw procErr;
+
+                ensureAdminUser(function(adminErr) {
+                  if (adminErr) throw adminErr;
+                  console.log("Connected!");
+                });
               });
             });
           });

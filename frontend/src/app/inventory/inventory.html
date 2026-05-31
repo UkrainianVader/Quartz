@@ -50,9 +50,38 @@
 	</section>
 
 	<section class="table-card" *ngIf="!loading">
+		<div class="bulk-actions">
+			<div class="bulk-actions-left">
+				<strong>{{ selectedItemIds.length }} вибрано</strong>
+				<span *ngIf="hasSelection(); else selectionHint">
+					{{ isAdmin() ? 'Масові дії для адміністраторів' : 'Масове повернення для поточного користувача' }}
+				</span>
+				<ng-template #selectionHint>
+					<span>Позначте щонайменше один компонент, щоб відкрити дії.</span>
+				</ng-template>
+			</div>
+			<div class="bulk-actions-right" *ngIf="hasSelection(); else emptyBulkActions">
+				<ng-container *ngIf="isAdmin(); else userBulkActions">
+					<select [formControl]="bulkAssignForm.controls.userId">
+						<option *ngFor="let user of getAssignableUsers(); trackBy: trackById" [value]="user.id">{{ user.username }}</option>
+					</select>
+					<button type="button" class="primary" (click)="submitBulkAssign()">Призначити вибрані</button>
+					<button type="button" class="warning" (click)="submitBulkUnassign()">Зняти призначення</button>
+					<button type="button" class="warning broken" (click)="submitBulkReturnBroken()">Зняти як поламане</button>
+				</ng-container>
+				<ng-template #userBulkActions>
+					<button type="button" class="primary" (click)="submitBulkReturn()">Повернути вибрані</button>
+				</ng-template>
+			</div>
+			<ng-template #emptyBulkActions></ng-template>
+		</div>
+
 		<table>
 			<thead>
 				<tr>
+					<th>
+						<input #selectAllCheckbox type="checkbox" [checked]="isAllVisibleSelected()" (change)="toggleSelectAll(selectAllCheckbox.checked)" />
+					</th>
 					<th>ID</th>
 					<th>Назва</th>
 					<th>Тип</th>
@@ -65,6 +94,9 @@
 			</thead>
 			<tbody>
 				<tr *ngFor="let item of getItems(); trackBy: trackById">
+					<td>
+						<input #rowCheckbox type="checkbox" [checked]="isItemSelected(item.id)" (change)="toggleSelection(item.id, rowCheckbox.checked)" />
+					</td>
 					<td>{{ item.id }}</td>
 					<td>{{ item.name }}</td>
 					<td>{{ item.type }}</td>
@@ -81,6 +113,7 @@
 							<button type="button" class="danger" (click)="removeComponent(item.id)">Видалити</button>
 							<button type="button" class="edit" (click)="openEditModal(item)">Редагувати</button>
 							<button *ngIf="isAssigned(item.id)" type="button" class="warning" (click)="unassignComponent(item.id)">Зняти призначення</button>
+							<button *ngIf="isAssigned(item.id)" type="button" class="warning broken" (click)="returnBrokenComponent(item.id)">Зняти як поламане</button>
 							<button *ngIf="!isAssigned(item.id) && item.status === 'ремонт'" type="button" class="secondary" (click)="fixComponent(item.id)">Відремонтовано</button>
 							<button *ngIf="!isAssigned(item.id) && item.status !== 'ремонт'" type="button" class="primary" (click)="openAssignModal(item)">Призначити користувачу</button>
 						</div>
@@ -100,7 +133,7 @@
 
 
 	<section class="modal-backdrop" *ngIf="showAdminPanel">
-		<div class="modal-card modal-wide">
+		<div class="modal-card modal-wide admin-panel">
 			<div class="modal-header">
 				<h2>Панель адміністрування</h2>
 				<button type="button" class="icon-button" (click)="closeAdminPanel()">×</button>
@@ -117,6 +150,7 @@
 				<div class="action-group">
 					<button type="button" class="primary" (click)="openAddUserModal()">Створити користувача</button>
 					<button type="button" class="danger" (click)="openDeleteUserModal()">Видалити користувача</button>
+					<button type="button" class="secondary" (click)="openUserReportModal()">Звіт користувача</button>
 				</div>
 			</div>
 
@@ -130,7 +164,7 @@
 
 			<div class="tab-content" *ngIf="activeAdminTab === 'db'">
 				<h3>Керування базою даних</h3>
-				<p style="color: #94a3b8; margin: 12px 0 20px 0; font-size: 0.9rem;">Вимкніть всіх користувачів перед скиданням.</p>
+				<p class="admin-note">Вимкніть всіх користувачів перед скиданням.</p>
 				<div class="action-group">
 					<button type="button" class="danger" (click)="openResetDbConfirm()">Скинути базу даних</button>
 				</div>
@@ -316,6 +350,92 @@
 					</tbody>
 				</table>
 			</ng-container>
+		</div>
+	</section>
+
+	<section class="modal-backdrop" *ngIf="showUserReportModal">
+		<div class="modal-card modal-wide report-panel">
+			<div class="modal-header">
+				<h2>Звіт користувача</h2>
+				<button type="button" class="icon-button" (click)="closeUserReportModal()">×</button>
+			</div>
+
+			<div class="user-report-controls">
+				<label *ngIf="isAdmin(); else currentUserOnly" class="user-report-select">
+					<span>Користувач</span>
+					<select #reportUserSelect [value]="selectedReportUserId" (change)="onReportUserChange(reportUserSelect.value)">
+						<option *ngFor="let user of getReportUsers(); trackBy: trackById" [value]="user.id">{{ user.username }}</option>
+					</select>
+				</label>
+				<ng-template #currentUserOnly>
+					<div class="user-report-current">
+						<span>Користувач</span>
+						<strong>{{ dashboard?.user?.username }}</strong>
+					</div>
+				</ng-template>
+				<p class="error" *ngIf="userReportError">{{ userReportError }}</p>
+				<p class="loading" *ngIf="userReportLoading">Завантаження звіту...</p>
+			</div>
+
+			<div class="report-scroll" *ngIf="userReport as report">
+				<div class="report-summary user-report-summary">
+					<p>Усього видач: {{ report.totals.totalAssignments }}</p>
+					<p>Активних призначень: {{ report.totals.activeAssignments }}</p>
+					<p>Повернено: {{ report.totals.returnedAssignments }}</p>
+					<p>Повернуто з поломкою: {{ report.totals.brokenReturns }}</p>
+				</div>
+
+				<div class="report-two-column">
+					<div>
+						<h3>Поточні компоненти</h3>
+						<table class="report-table">
+							<thead>
+								<tr>
+									<th>ID</th>
+									<th>Назва</th>
+									<th>Тип</th>
+									<th>Серійний номер</th>
+									<th>Статус</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr *ngFor="let item of report.currentComponents; trackBy: trackById">
+									<td>{{ item.id }}</td>
+									<td>{{ item.name }}</td>
+									<td>{{ item.type }}</td>
+									<td>{{ item.serial }}</td>
+									<td>{{ item.status }}</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+
+					<div>
+						<h3>Історія видач</h3>
+						<table class="report-table">
+							<thead>
+								<tr>
+									<th>Компонент</th>
+									<th>Взято</th>
+									<th>Повернуто</th>
+									<th>Поломка</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr *ngFor="let entry of report.history; trackBy: trackById">
+									<td>
+										<div>{{ entry.name }}</div>
+										<small>{{ entry.type }} {{ entry.serial }}</small>
+									</td>
+									<td>{{ entry.dateTaken | date:'short' }}</td>
+									<td>{{ entry.dateReturned ? (entry.dateReturned | date:'short') : 'Активне' }}</td>
+									<td>{{ entry.returnedBroken ? 'Так' : 'Ні' }}</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
 		</div>
 	</section>
 

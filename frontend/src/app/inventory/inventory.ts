@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, finalize, takeUntil } from 'rxjs';
 import { AuthService } from '../auth.service';
-import { DashboardItem, DashboardResponse, DashboardService, DashboardUser, WarehouseReport } from './dashboard.service';
+import { DashboardItem, DashboardResponse, DashboardService, DashboardUser, UserReport, WarehouseReport } from './dashboard.service';
 
 @Component({
   selector: 'app-inventory',
@@ -24,6 +24,7 @@ export class Inventory implements OnInit {
   protected actionMessage = '';
   protected dashboard: DashboardResponse | null = null;
   protected filteredItems: DashboardItem[] = [];
+  protected selectedItemIds: number[] = [];
 
   private readonly destroy$ = new Subject<void>();
 
@@ -34,9 +35,14 @@ export class Inventory implements OnInit {
   protected showAddUserModal = false;
   protected showDeleteUserModal = false;
   protected showReportModal = false;
+  protected showUserReportModal = false;
   protected showFilters = false;
   protected showResetDbConfirm = false;
   protected activeAdminTab: 'users' | 'equipment' | 'db' = 'users';
+  protected userReport: UserReport | null = null;
+  protected userReportLoading = false;
+  protected userReportError = '';
+  protected selectedReportUserId = 0;
 
   protected readonly filterForm = this.fb.nonNullable.group({
     searchQuery: [''],
@@ -63,6 +69,10 @@ export class Inventory implements OnInit {
 
   protected readonly assignForm = this.fb.nonNullable.group({
     itemId: [0, [Validators.required]],
+    userId: [0, [Validators.required]]
+  });
+
+  protected readonly bulkAssignForm = this.fb.nonNullable.group({
     userId: [0, [Validators.required]]
   });
 
@@ -93,20 +103,24 @@ export class Inventory implements OnInit {
     this.destroy$.complete();
   }
 
-  protected loadDashboard(): void {
-    this.loading = true;
-    this.errorMessage = '';
-    this.cdr.detectChanges();
+  protected loadDashboard(keepVisible = false): void {
+    if (!keepVisible) {
+      this.loading = true;
+      this.errorMessage = '';
+      this.cdr.detectChanges();
+    }
 
     this.dashboardService.getDashboard().subscribe({
       next: (dashboard) => {
         this.dashboard = dashboard;
         this.filteredItems = dashboard.items ?? [];
+        this.selectedItemIds = [];
         this.loading = false;
 
         const firstAssignableUser = this.getAssignableUsers()[0];
         if (firstAssignableUser) {
           this.deleteUserForm.patchValue({ userId: firstAssignableUser.id });
+          this.bulkAssignForm.patchValue({ userId: firstAssignableUser.id });
         }
 
         this.cdr.detectChanges();
@@ -202,6 +216,36 @@ export class Inventory implements OnInit {
     this.showReportModal = true;
   }
 
+  protected openUserReportModal(): void {
+    if (!this.isAdmin()) {
+      return;
+    }
+
+    this.selectedReportUserId = this.getReportUsers()[0]?.id ?? 0;
+    this.userReportError = '';
+    this.showUserReportModal = true;
+
+    if (this.selectedReportUserId) {
+      this.loadUserReport(this.selectedReportUserId);
+    }
+  }
+
+  protected closeUserReportModal(): void {
+    this.showUserReportModal = false;
+    this.userReportError = '';
+    this.userReportLoading = false;
+  }
+
+  protected onReportUserChange(value: string): void {
+    const nextUserId = Number(value);
+    if (!Number.isInteger(nextUserId) || nextUserId <= 0 || nextUserId === this.selectedReportUserId) {
+      return;
+    }
+
+    this.selectedReportUserId = nextUserId;
+    this.loadUserReport(nextUserId);
+  }
+
   protected closeAllModals(): void {
     this.showEditModal = false;
     this.showAddModal = false;
@@ -209,7 +253,44 @@ export class Inventory implements OnInit {
     this.showAddUserModal = false;
     this.showDeleteUserModal = false;
     this.showReportModal = false;
+    this.showUserReportModal = false;
     this.showResetDbConfirm = false;
+  }
+
+  protected toggleSelection(itemId: number, checked: boolean): void {
+    const numericId = Number(itemId);
+
+    if (checked) {
+      if (!this.selectedItemIds.includes(numericId)) {
+        this.selectedItemIds = [...this.selectedItemIds, numericId];
+      }
+
+      return;
+    }
+
+    this.selectedItemIds = this.selectedItemIds.filter((selectedId) => selectedId !== numericId);
+  }
+
+  protected toggleSelectAll(checked: boolean): void {
+    const visibleIds = this.getItems().map((item) => item.id);
+    this.selectedItemIds = checked ? visibleIds : [];
+  }
+
+  protected isItemSelected(itemId: number): boolean {
+    return this.selectedItemIds.includes(Number(itemId));
+  }
+
+  protected isAllVisibleSelected(): boolean {
+    const visibleIds = this.getItems().map((item) => item.id);
+    return visibleIds.length > 0 && visibleIds.every((id) => this.selectedItemIds.includes(id));
+  }
+
+  protected hasSelection(): boolean {
+    return this.selectedItemIds.length > 0;
+  }
+
+  protected clearSelection(): void {
+    this.selectedItemIds = [];
   }
 
   protected openResetDbConfirm(): void {
@@ -222,7 +303,7 @@ export class Inventory implements OnInit {
       next: () => {
         this.closeAllModals();
         this.actionMessage = 'База даних скинута';
-        this.loadDashboard();
+        this.loadDashboard(true);
       },
       error: (error: unknown) => {
         this.loading = false;
@@ -243,7 +324,7 @@ export class Inventory implements OnInit {
         next: () => {
         this.closeAllModals();
         this.actionMessage = 'Компонент додано';
-        this.loadDashboard();
+        this.loadDashboard(true);
       },
       error: (error: unknown) => {
         this.errorMessage = this.extractMessage(error, 'Failed to add component');
@@ -262,7 +343,7 @@ export class Inventory implements OnInit {
         next: () => {
         this.closeAllModals();
         this.actionMessage = 'Компонент оновлено';
-        this.loadDashboard();
+        this.loadDashboard(true);
       },
       error: (error: unknown) => {
         this.errorMessage = this.extractMessage(error, 'Failed to update component');
@@ -282,10 +363,88 @@ export class Inventory implements OnInit {
         next: () => {
         this.closeAllModals();
         this.actionMessage = 'Компонент призначено';
-        this.loadDashboard();
+        this.loadDashboard(true);
       },
       error: (error: unknown) => {
         this.errorMessage = this.extractMessage(error, 'Failed to assign component');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  protected submitBulkAssign(): void {
+    if (!this.selectedItemIds.length) {
+      return;
+    }
+
+    const { userId } = this.bulkAssignForm.getRawValue();
+    if (!userId) {
+      this.bulkAssignForm.markAllAsTouched();
+      return;
+    }
+
+    this.dashboardService.bulkAssignComponents(this.selectedItemIds, Number(userId)).subscribe({
+      next: (result) => {
+        const skippedText = result.skipped.length ? `, пропущено: ${result.skipped.length}` : '';
+        this.actionMessage = `Призначено: ${result.assigned.length}${skippedText}`;
+        this.loadDashboard(true);
+      },
+      error: (error: unknown) => {
+        this.errorMessage = this.extractMessage(error, 'Failed to assign selected components');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  protected submitBulkUnassign(): void {
+    if (!this.selectedItemIds.length) {
+      return;
+    }
+
+    this.dashboardService.bulkUnassignComponents(this.selectedItemIds).subscribe({
+      next: (result) => {
+        const skippedText = result.skipped.length ? `, пропущено: ${result.skipped.length}` : '';
+        this.actionMessage = `Знято призначення: ${result.unassigned.length}${skippedText}`;
+        this.loadDashboard(true);
+      },
+      error: (error: unknown) => {
+        this.errorMessage = this.extractMessage(error, 'Failed to unassign selected components');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  protected submitBulkReturn(): void {
+    if (!this.selectedItemIds.length) {
+      return;
+    }
+
+    this.dashboardService.bulkReturnComponents(this.selectedItemIds).subscribe({
+      next: (result) => {
+        const skippedText = result.skipped.length ? `, пропущено: ${result.skipped.length}` : '';
+        this.actionMessage = `Повернуто: ${result.returned.length}${skippedText}`;
+        this.loadDashboard(true);
+      },
+      error: (error: unknown) => {
+        this.errorMessage = this.extractMessage(error, 'Failed to return selected components');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  protected submitBulkReturnBroken(): void {
+    if (!this.selectedItemIds.length) {
+      return;
+    }
+
+    this.dashboardService.bulkReturnBrokenComponents(this.selectedItemIds).subscribe({
+      next: (result) => {
+        const skippedText = result.skipped.length ? `, пропущено: ${result.skipped.length}` : '';
+        this.actionMessage = `Як поламане знято: ${result.returned.length}${skippedText}`;
+        this.loadDashboard(true);
+      },
+      error: (error: unknown) => {
+        this.errorMessage = this.extractMessage(error, 'Failed to return selected components as broken');
         this.cdr.detectChanges();
       }
     });
@@ -301,7 +460,7 @@ export class Inventory implements OnInit {
         next: () => {
         this.closeAllModals();
         this.actionMessage = 'Користувача створено';
-        this.loadDashboard();
+        this.loadDashboard(true);
       },
       error: (error: unknown) => {
         this.errorMessage = this.extractMessage(error, 'Failed to create user');
@@ -321,7 +480,7 @@ export class Inventory implements OnInit {
         next: () => {
         this.closeAllModals();
         this.actionMessage = 'Користувача видалено';
-        this.loadDashboard();
+        this.loadDashboard(true);
       },
       error: (error: unknown) => {
         this.errorMessage = this.extractMessage(error, 'Failed to delete user');
@@ -334,7 +493,7 @@ export class Inventory implements OnInit {
     this.dashboardService.removeComponent(id).subscribe({
       next: () => {
         this.actionMessage = 'Компонент видалено';
-        this.loadDashboard();
+        this.loadDashboard(true);
       },
       error: (error: unknown) => {
         this.errorMessage = this.extractMessage(error, 'Failed to delete component');
@@ -345,7 +504,7 @@ export class Inventory implements OnInit {
 
   protected fixComponent(id: number): void {
     this.dashboardService.fixComponent(Number(id)).subscribe({
-      next: () => this.loadDashboard(),
+      next: () => this.loadDashboard(true),
       error: (error: unknown) => {
         this.errorMessage = this.extractMessage(error, 'Failed to mark component as fixed');
         this.cdr.detectChanges();
@@ -355,7 +514,7 @@ export class Inventory implements OnInit {
 
   protected unassignComponent(id: number): void {
     this.dashboardService.unassignComponent(Number(id)).subscribe({
-      next: () => this.loadDashboard(),
+      next: () => this.loadDashboard(true),
       error: (error: unknown) => {
         this.errorMessage = this.extractMessage(error, 'Failed to unassign component');
         this.cdr.detectChanges();
@@ -365,7 +524,7 @@ export class Inventory implements OnInit {
 
   protected returnComponent(id: number): void {
     this.dashboardService.returnComponent(Number(id)).subscribe({
-      next: () => this.loadDashboard(),
+      next: () => this.loadDashboard(true),
       error: (error: unknown) => {
         this.errorMessage = this.extractMessage(error, 'Failed to return component');
         this.cdr.detectChanges();
@@ -374,8 +533,20 @@ export class Inventory implements OnInit {
   }
 
   protected returnBrokenComponent(id: number): void {
+    const isAdmin = this.dashboard?.user?.role === 'admin';
+    if (isAdmin) {
+      this.dashboardService.bulkReturnBrokenComponents([Number(id)]).subscribe({
+        next: () => this.loadDashboard(true),
+        error: (error: unknown) => {
+          this.errorMessage = this.extractMessage(error, 'Failed to return component as broken');
+          this.cdr.detectChanges();
+        }
+      });
+      return;
+    }
+
     this.dashboardService.returnBrokenComponent(Number(id)).subscribe({
-      next: () => this.loadDashboard(),
+      next: () => this.loadDashboard(true),
       error: (error: unknown) => {
         this.errorMessage = this.extractMessage(error, 'Failed to return component as broken');
         this.cdr.detectChanges();
@@ -443,6 +614,10 @@ export class Inventory implements OnInit {
     return this.dashboard?.warehouseReport ?? null;
   }
 
+  protected getReportUsers(): DashboardUser[] {
+    return this.getAssignableUsers();
+  }
+
   protected trackById(_: number, item: DashboardItem | DashboardUser): number {
     return item.id;
   }
@@ -460,6 +635,24 @@ export class Inventory implements OnInit {
     }
 
     return fallback;
+  }
+
+  private loadUserReport(userId: number): void {
+    this.userReportLoading = true;
+    this.userReportError = '';
+
+    this.dashboardService.getUserReport(userId).subscribe({
+      next: (report) => {
+        this.userReport = report;
+        this.userReportLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (error: unknown) => {
+        this.userReportLoading = false;
+        this.userReportError = this.extractMessage(error, 'Failed to load user report');
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   private runServerSearch(): void {
@@ -481,6 +674,9 @@ export class Inventory implements OnInit {
 
       return matchesQuery && matchesStatus && matchesType;
     });
+
+    const visibleIds = new Set(this.filteredItems.map((item) => item.id));
+    this.selectedItemIds = this.selectedItemIds.filter((id) => visibleIds.has(id));
 
     this.cdr.detectChanges();
   }

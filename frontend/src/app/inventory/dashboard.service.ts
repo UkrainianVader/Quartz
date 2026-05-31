@@ -26,6 +26,31 @@ export interface WarehouseReport {
   equipment: DashboardItem[];
 }
 
+export interface UserReportHistoryEntry {
+  id: number;
+  equipmentId: number;
+  name: string;
+  type: string;
+  serial: string;
+  status: string;
+  description: string;
+  dateTaken: string;
+  dateReturned: string | null;
+  returnedBroken: boolean;
+}
+
+export interface UserReport {
+  user: DashboardUser;
+  currentComponents: DashboardItem[];
+  history: UserReportHistoryEntry[];
+  totals: {
+    totalAssignments: number;
+    activeAssignments: number;
+    returnedAssignments: number;
+    brokenReturns: number;
+  };
+}
+
 export interface DashboardResponse {
   user: AuthUser;
   items: DashboardItem[];
@@ -65,6 +90,11 @@ export class DashboardService {
       .pipe(map((response) => response.report));
   }
 
+  getUserReport(userId: number): Observable<UserReport> {
+    return this.http.get<{ report: UserReport }>(`/api/report/user/${userId}`, { withCredentials: true })
+      .pipe(map((response) => response.report));
+  }
+
   addComponent(value: ComponentFormValue): Observable<void> {
     return this.http.post<void>('/api/components/add', value, { withCredentials: true });
   }
@@ -98,6 +128,22 @@ export class DashboardService {
 
   unassignComponent(id: number): Observable<void> {
     return this.http.post<void>('/api/assignments/unassign', { id }, { withCredentials: true });
+  }
+
+  bulkAssignComponents(ids: number[], userId: number): Observable<{ message: string; assigned: number[]; skipped: number[] }> {
+    return this.http.post<{ message: string; assigned: number[]; skipped: number[] }>('/api/assignments/bulk-assign', { ids, userId }, { withCredentials: true });
+  }
+
+  bulkUnassignComponents(ids: number[]): Observable<{ message: string; unassigned: number[]; skipped: number[] }> {
+    return this.http.post<{ message: string; unassigned: number[]; skipped: number[] }>('/api/assignments/bulk-unassign', { ids }, { withCredentials: true });
+  }
+
+  bulkReturnComponents(ids: number[]): Observable<{ message: string; returned: number[]; skipped: number[] }> {
+    return this.http.post<{ message: string; returned: number[]; skipped: number[] }>('/api/assignments/bulk-return', { ids }, { withCredentials: true });
+  }
+
+  bulkReturnBrokenComponents(ids: number[]): Observable<{ message: string; returned: number[]; skipped: number[] }> {
+    return this.http.post<{ message: string; returned: number[]; skipped: number[] }>('/api/assignments/bulk-return-broken', { ids }, { withCredentials: true });
   }
 
   returnComponent(id: number): Observable<void> {
