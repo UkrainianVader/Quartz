@@ -34,11 +34,13 @@ export class Inventory implements OnInit {
   protected showAssignModal = false;
   protected showAddUserModal = false;
   protected showDeleteUserModal = false;
+  protected showTutorAssignModal = false;
   protected showReportModal = false;
   protected showUserReportModal = false;
   protected showFilters = false;
   protected showResetDbConfirm = false;
   protected activeAdminTab: 'users' | 'equipment' | 'db' = 'users';
+  protected selectedStudentIds: number[] = [];
   protected userReport: UserReport | null = null;
   protected userReportLoading = false;
   protected userReportError = '';
@@ -74,6 +76,10 @@ export class Inventory implements OnInit {
 
   protected readonly bulkAssignForm = this.fb.nonNullable.group({
     userId: [0, [Validators.required]]
+  });
+
+  protected readonly tutorAssignForm = this.fb.nonNullable.group({
+    tutorId: [0, [Validators.required]]
   });
 
   protected readonly addUserForm = this.fb.nonNullable.group({
@@ -115,12 +121,18 @@ export class Inventory implements OnInit {
         this.dashboard = dashboard;
         this.filteredItems = dashboard.items ?? [];
         this.selectedItemIds = [];
+        this.selectedStudentIds = [];
         this.loading = false;
 
-        const firstAssignableUser = this.getAssignableUsers()[0];
+        const firstAssignableUser = this.getComponentAssignableUsers()[0];
         if (firstAssignableUser) {
           this.deleteUserForm.patchValue({ userId: firstAssignableUser.id });
           this.bulkAssignForm.patchValue({ userId: firstAssignableUser.id });
+        }
+
+        const firstTutor = this.getTutorUsers()[0];
+        if (firstTutor) {
+          this.tutorAssignForm.patchValue({ tutorId: firstTutor.id });
         }
 
         this.cdr.detectChanges();
@@ -185,7 +197,7 @@ export class Inventory implements OnInit {
   }
 
   protected openAssignModal(item: DashboardItem): void {
-    const firstAssignableUser = this.getAssignableUsers()[0];
+    const firstAssignableUser = this.getComponentAssignableUsers()[0];
 
     this.assignForm.reset({
       itemId: item.id,
@@ -204,7 +216,7 @@ export class Inventory implements OnInit {
   }
 
   protected openDeleteUserModal(): void {
-    const firstAssignableUser = this.getAssignableUsers()[0];
+    const firstAssignableUser = this.getDeletableUsers()[0];
 
     this.deleteUserForm.reset({
       userId: firstAssignableUser ? firstAssignableUser.id : 0
@@ -212,12 +224,22 @@ export class Inventory implements OnInit {
     this.showDeleteUserModal = true;
   }
 
+  protected openTutorAssignModal(): void {
+    const firstTutor = this.getTutorUsers()[0];
+
+    this.selectedStudentIds = [];
+    this.tutorAssignForm.reset({
+      tutorId: firstTutor ? firstTutor.id : 0
+    });
+    this.showTutorAssignModal = true;
+  }
+
   protected openReportModal(): void {
     this.showReportModal = true;
   }
 
   protected openUserReportModal(): void {
-    if (!this.isAdmin()) {
+    if (!this.isAdmin() && !this.isTutor()) {
       return;
     }
 
@@ -252,6 +274,7 @@ export class Inventory implements OnInit {
     this.showAssignModal = false;
     this.showAddUserModal = false;
     this.showDeleteUserModal = false;
+    this.showTutorAssignModal = false;
     this.showReportModal = false;
     this.showUserReportModal = false;
     this.showResetDbConfirm = false;
@@ -489,6 +512,50 @@ export class Inventory implements OnInit {
     });
   }
 
+  protected toggleStudentSelection(studentId: number, checked: boolean): void {
+    const numericId = Number(studentId);
+
+    if (checked) {
+      if (!this.selectedStudentIds.includes(numericId)) {
+        this.selectedStudentIds = [...this.selectedStudentIds, numericId];
+      }
+
+      return;
+    }
+
+    this.selectedStudentIds = this.selectedStudentIds.filter((selectedId) => selectedId !== numericId);
+  }
+
+  protected selectAllStudents(): void {
+    this.selectedStudentIds = this.getStudentUsers().map((student) => student.id);
+  }
+
+  protected clearStudentSelection(): void {
+    this.selectedStudentIds = [];
+  }
+
+  protected submitTutorAssignment(): void {
+    const { tutorId } = this.tutorAssignForm.getRawValue();
+
+    if (!tutorId || !this.selectedStudentIds.length) {
+      this.tutorAssignForm.markAllAsTouched();
+      return;
+    }
+
+    this.dashboardService.bulkAssignStudentsToTutor(this.selectedStudentIds, Number(tutorId)).subscribe({
+      next: (result) => {
+        const skippedText = result.skipped.length ? `, пропущено: ${result.skipped.length}` : '';
+        this.actionMessage = `Студентів призначено тьютору: ${result.assigned.length}${skippedText}`;
+        this.closeAllModals();
+        this.loadDashboard(true);
+      },
+      error: (error: unknown) => {
+        this.errorMessage = this.extractMessage(error, 'Failed to assign students to tutor');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   protected removeComponent(id: number): void {
     this.dashboardService.removeComponent(id).subscribe({
       next: () => {
@@ -559,9 +626,15 @@ export class Inventory implements OnInit {
       return 'Список обладнання';
     }
 
-    return this.dashboard.user.role === 'admin' || this.dashboard.user.role === 'teacher'
-      ? 'Список обладнання'
-      : 'Моє обладнання';
+    if (this.isAdmin()) {
+      return 'Список обладнання';
+    }
+
+    if (this.isTutor()) {
+      return 'Панель тьютора';
+    }
+
+    return 'Моє обладнання';
   }
 
   protected isAdmin(): boolean {
@@ -597,8 +670,72 @@ export class Inventory implements OnInit {
     return this.dashboard?.users ?? [];
   }
 
-  protected getAssignableUsers(): DashboardUser[] {
+  protected getComponentAssignableUsers(): DashboardUser[] {
+    const currentUser = this.dashboard?.user;
+    if (!currentUser) {
+      return [];
+    }
+
+    if (currentUser.role === 'admin') {
+      return this.getUsers().filter((user) => user.role === 'tutor' || user.role === 'teacher');
+    }
+
+    if (this.isTutor()) {
+      return this.getUsers().filter((user) => user.role === 'user' && Number(user.tutorId) === Number(currentUser.id));
+    }
+
+    return [];
+  }
+
+  protected getDeletableUsers(): DashboardUser[] {
     return this.getUsers().filter((user) => user.role !== 'admin');
+  }
+
+  protected getTutorUsers(): DashboardUser[] {
+    return this.getUsers().filter((user) => user.role === 'tutor' || user.role === 'teacher');
+  }
+
+  protected getStudentUsers(): DashboardUser[] {
+    return this.getUsers().filter((user) => user.role === 'user');
+  }
+
+  protected getReportUsers(): DashboardUser[] {
+    const currentUser = this.dashboard?.user;
+    if (!currentUser) {
+      return [];
+    }
+
+    if (this.isAdmin()) {
+      return this.getUsers().filter((user) => user.role !== 'admin');
+    }
+
+    if (this.isTutor()) {
+      return this.getUsers().filter((user) => user.id === currentUser.id || (user.role === 'user' && Number(user.tutorId) === Number(currentUser.id)));
+    }
+
+    return this.getUsers().filter((user) => user.id === currentUser.id);
+  }
+
+  protected getAssignmentHolder(itemId: number): DashboardUser | null {
+    const holderId = this.dashboard?.assignmentUserIdByEquipmentId?.[String(itemId)];
+    if (!holderId) {
+      return null;
+    }
+
+    return this.getUsers().find((user) => Number(user.id) === Number(holderId)) || null;
+  }
+
+  protected isAssignedToMe(itemId: number): boolean {
+    return Number(this.dashboard?.assignmentUserIdByEquipmentId?.[String(itemId)] ?? 0) === Number(this.dashboard?.user?.id ?? 0);
+  }
+
+  protected isAssignedToMyStudent(itemId: number): boolean {
+    const holder = this.getAssignmentHolder(itemId);
+    return Boolean(holder && holder.role === 'user' && Number(holder.tutorId) === Number(this.dashboard?.user?.id ?? 0));
+  }
+
+  protected isTutor(): boolean {
+    return this.dashboard?.user?.role === 'tutor' || this.dashboard?.user?.role === 'teacher';
   }
 
   protected getAssignmentLabel(itemId: number): string {
@@ -612,10 +749,6 @@ export class Inventory implements OnInit {
 
   protected getReport(): WarehouseReport | null {
     return this.dashboard?.warehouseReport ?? null;
-  }
-
-  protected getReportUsers(): DashboardUser[] {
-    return this.getAssignableUsers();
   }
 
   protected trackById(_: number, item: DashboardItem | DashboardUser): number {

@@ -14,9 +14,10 @@ router.get('/api/components/search', requireApiAuth, (req, res) => {
     const status = String(req.query.status ?? '');
     const type = String(req.query.type ?? '');
     const userId = Number(req.session.user?.id ?? 0);
-    const isAdmin = req.session.user?.role === 'admin';
+    const role = req.session.user?.role ?? 'user';
+    const tutorId = Number(req.session.user?.tutorId ?? 0);
 
-    db.searchComponents(query, status, type, userId, isAdmin, (err, items) => {
+    db.searchComponents(query, status, type, userId, role, tutorId, (err, items) => {
         if (err) {
             return sendApiError(res, err);
         }

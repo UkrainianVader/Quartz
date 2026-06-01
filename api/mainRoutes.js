@@ -5,12 +5,34 @@ const { requireApiAuth } = require('../middleware/auth');
 const router = express.Router();
 
 const buildDashboardPayload = (req, components, usersResults, usageResults) => {
+    const currentUser = req.session.user;
+    const usersById = new Map(usersResults.map((user) => [Number(user.id), user]));
+
     const assignedEquipmentIds = usageResults
         .filter((entry) => entry.date_returned === null)
         .map((entry) => Number(entry.equipment_id));
 
-    const userAssignedEquipmentIds = usageResults
-        .filter((entry) => entry.date_returned === null && Number(entry.user_id) === Number(req.session.user.id))
+    const visibleEquipmentIds = usageResults
+        .filter((entry) => {
+            if (entry.date_returned !== null) {
+                return false;
+            }
+
+            if (currentUser.role === 'admin') {
+                return true;
+            }
+
+            if (currentUser.role === 'tutor') {
+                if (Number(entry.user_id) === Number(currentUser.id)) {
+                    return true;
+                }
+
+                const holder = usersById.get(Number(entry.user_id));
+                return Number(holder?.tutor_id) === Number(currentUser.id);
+            }
+
+            return Number(entry.user_id) === Number(currentUser.id);
+        })
         .map((entry) => Number(entry.equipment_id));
 
     const assignmentByEquipmentId = assignedEquipmentIds.reduce((acc, equipmentId) => {
@@ -25,7 +47,7 @@ const buildDashboardPayload = (req, components, usersResults, usageResults) => {
         return acc;
     }, {});
 
-    const warehouseReport = req.session.user.role === 'admin'
+    const warehouseReport = currentUser.role === 'admin'
         ? {
             totalEquipment: components.length,
             damagedEquipment: components.filter((c) => c.status === 'ремонт').length,
@@ -36,15 +58,20 @@ const buildDashboardPayload = (req, components, usersResults, usageResults) => {
         : null;
 
     return {
-        user: req.session.user,
-        items: req.session.user.role === 'admin'
+        user: currentUser,
+        items: currentUser.role === 'admin'
             ? components
-            : userAssignedEquipmentIds
+            : visibleEquipmentIds
                 .map((id) => components.find((item) => Number(item.id) === Number(id)))
                 .filter((item) => item),
         users: usersResults,
         assignedEquipmentIds,
         assignmentByEquipmentId,
+        assignmentUserIdByEquipmentId: assignedEquipmentIds.reduce((acc, equipmentId) => {
+            const assignment = usageResults.find((entry) => Number(entry.equipment_id) === equipmentId && entry.date_returned === null);
+            acc[equipmentId] = assignment ? Number(assignment.user_id) : null;
+            return acc;
+        }, {}),
         warehouseReport
     };
 };
@@ -56,7 +83,7 @@ router.get('/api/dashboard', requireApiAuth, (req, res) => {
             return res.status(500).json({ message: 'DB error' });
         }
 
-        db.read('users', 'id, username, role', (usersErr, usersResults) => {
+        db.read('users', 'id, username, role, tutor_id', (usersErr, usersResults) => {
             if (usersErr) {
                 console.error(usersErr);
                 return res.status(500).json({ message: 'DB error' });

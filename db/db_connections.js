@@ -28,14 +28,41 @@ const ensureUsersTable = (callback) => {
     \`username\` text,
     \`password\` text,
     \`role\` varchar(50) DEFAULT 'user',
+    \`tutor_id\` int DEFAULT NULL,
     PRIMARY KEY (\`id\`)
   )`, callback);
+};
+
+const ensureUsersTutorColumn = (callback) => {
+  con.query(
+    `SELECT COUNT(*) AS columnCount
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = ?
+       AND TABLE_NAME = 'users'
+       AND COLUMN_NAME = 'tutor_id'`,
+    [process.env.DB_NAME],
+    (err, rows) => {
+      if (err) {
+        return callback(err);
+      }
+
+      if (rows[0]?.columnCount > 0) {
+        return callback();
+      }
+
+      con.query(
+        'ALTER TABLE `users` ADD COLUMN `tutor_id` int DEFAULT NULL AFTER `role`',
+        callback
+      );
+    }
+  );
 };
 
 const ensureUsageHistoryTable = (callback) => {
   con.query(`CREATE TABLE IF NOT EXISTS \`usage_history\` (
     \`id\` int NOT NULL AUTO_INCREMENT,
     \`user_id\` int DEFAULT NULL,
+    \`assigned_by_user_id\` int DEFAULT NULL,
     \`username\` text,
     \`equipment_id\` int NOT NULL,
     \`date_taken\` datetime DEFAULT CURRENT_TIMESTAMP,
@@ -43,8 +70,34 @@ const ensureUsageHistoryTable = (callback) => {
     \`returned_broken\` tinyint(1) NOT NULL DEFAULT 0,
     PRIMARY KEY (\`id\`),
     CONSTRAINT \`fk_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE SET NULL,
+    CONSTRAINT \`fk_assigned_by_user\` FOREIGN KEY (\`assigned_by_user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE SET NULL,
     CONSTRAINT \`fk_equipment\` FOREIGN KEY (\`equipment_id\`) REFERENCES \`components\` (\`id\`) ON DELETE CASCADE
   )`, callback);
+};
+
+const ensureUsageHistoryAssignedByColumn = (callback) => {
+  con.query(
+    `SELECT COUNT(*) AS columnCount
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = ?
+       AND TABLE_NAME = 'usage_history'
+       AND COLUMN_NAME = 'assigned_by_user_id'`,
+    [process.env.DB_NAME],
+    (err, rows) => {
+      if (err) {
+        return callback(err);
+      }
+
+      if (rows[0]?.columnCount > 0) {
+        return callback();
+      }
+
+      con.query(
+        'ALTER TABLE `usage_history` ADD COLUMN `assigned_by_user_id` int DEFAULT NULL AFTER `user_id`',
+        callback
+      );
+    }
+  );
 };
 
 const ensureUsageHistoryReturnedBrokenColumn = (callback) => {
@@ -83,15 +136,22 @@ const ensureSearchComponentsProcedure = (callback) => {
       IN p_status VARCHAR(255),
       IN p_type VARCHAR(255),
       IN p_user_id INT,
-      IN p_is_admin TINYINT
+      IN p_role VARCHAR(50),
+      IN p_tutor_id INT
     )
     SELECT DISTINCT c.*
     FROM components c
     LEFT JOIN usage_history uh
       ON uh.equipment_id = c.id
       AND uh.date_returned IS NULL
+    LEFT JOIN users holder
+      ON holder.id = uh.user_id
     WHERE
-      (p_is_admin = 1 OR uh.user_id = p_user_id)
+      (
+        p_role = 'admin'
+        OR (p_role = 'tutor' AND (uh.user_id = p_user_id OR holder.tutor_id = p_user_id))
+        OR (p_role = 'user' AND uh.user_id = p_user_id)
+      )
       AND (
         p_query IS NULL OR p_query = ''
         OR LOWER(c.name) LIKE CONCAT('%', LOWER(p_query), '%')
@@ -137,15 +197,23 @@ con.connect(function(err) {
           ensureUsageHistoryTable(function(usageErr) {
             if (usageErr) throw usageErr;
 
-            ensureUsageHistoryReturnedBrokenColumn(function(schemaErr) {
-              if (schemaErr) throw schemaErr;
+            ensureUsersTutorColumn(function(usersTutorErr) {
+              if (usersTutorErr) throw usersTutorErr;
 
-              ensureSearchComponentsProcedure(function(procErr) {
-                if (procErr) throw procErr;
+              ensureUsageHistoryAssignedByColumn(function(assignedByErr) {
+                if (assignedByErr) throw assignedByErr;
 
-                ensureAdminUser(function(adminErr) {
-                  if (adminErr) throw adminErr;
-                  console.log("Connected!");
+                ensureUsageHistoryReturnedBrokenColumn(function(schemaErr) {
+                  if (schemaErr) throw schemaErr;
+
+                  ensureSearchComponentsProcedure(function(procErr) {
+                    if (procErr) throw procErr;
+
+                    ensureAdminUser(function(adminErr) {
+                      if (adminErr) throw adminErr;
+                      console.log("Connected!");
+                    });
+                  });
                 });
               });
             });

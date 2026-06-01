@@ -55,9 +55,9 @@ const dbOperations = {
             return result;
         });
     },
-    searchComponents: (query, status, type, userId, isAdmin, callback) => {
-        const sql_query = 'CALL search_components(?, ?, ?, ?, ?)';
-        const values = [query || '', status || '', type || '', Number(userId) || 0, isAdmin ? 1 : 0];
+    searchComponents: (query, status, type, userId, role, tutorId, callback) => {
+        const sql_query = 'CALL search_components(?, ?, ?, ?, ?, ?)';
+        const values = [query || '', status || '', type || '', Number(userId) || 0, role || 'user', Number(tutorId) || 0];
 
         db.query(sql_query, values, function (err, result) {
             if (callback) {

@@ -10,6 +10,7 @@
 			<button type="button" class="filter-toggle-btn" (click)="toggleFilters()">
 				{{ showFilters ? 'Сховати фільтри' : 'Показати фільтри' }}
 			</button>
+			<button *ngIf="isTutor()" type="button" class="secondary" (click)="openUserReportModal()">Звіт студентів</button>
 			<button type="button" class="danger" (click)="logout()">Вийти</button>
 			<button *ngIf="isAdmin()" type="button" class="admin-btn" (click)="openAdminPanel()">Панель адміністрування</button>
 		</div>
@@ -54,7 +55,7 @@
 			<div class="bulk-actions-left">
 				<strong>{{ selectedItemIds.length }} вибрано</strong>
 				<span *ngIf="hasSelection(); else selectionHint">
-					{{ isAdmin() ? 'Масові дії для адміністраторів' : 'Масове повернення для поточного користувача' }}
+					{{ isAdmin() ? 'Масові дії для адміністраторів' : isTutor() ? 'Масові дії для тьюторів' : 'Масове повернення для поточного користувача' }}
 				</span>
 				<ng-template #selectionHint>
 					<span>Позначте щонайменше один компонент, щоб відкрити дії.</span>
@@ -63,14 +64,25 @@
 			<div class="bulk-actions-right" *ngIf="hasSelection(); else emptyBulkActions">
 				<ng-container *ngIf="isAdmin(); else userBulkActions">
 					<select [formControl]="bulkAssignForm.controls.userId">
-						<option *ngFor="let user of getAssignableUsers(); trackBy: trackById" [value]="user.id">{{ user.username }}</option>
+						<option *ngFor="let user of getComponentAssignableUsers(); trackBy: trackById" [value]="user.id">{{ user.username }}</option>
 					</select>
 					<button type="button" class="primary" (click)="submitBulkAssign()">Призначити вибрані</button>
 					<button type="button" class="warning" (click)="submitBulkUnassign()">Зняти призначення</button>
 					<button type="button" class="warning broken" (click)="submitBulkReturnBroken()">Зняти як поламане</button>
 				</ng-container>
 				<ng-template #userBulkActions>
-					<button type="button" class="primary" (click)="submitBulkReturn()">Повернути вибрані</button>
+					<ng-container *ngIf="isTutor(); else studentBulkActions">
+						<select [formControl]="bulkAssignForm.controls.userId">
+							<option *ngFor="let user of getComponentAssignableUsers(); trackBy: trackById" [value]="user.id">{{ user.username }}</option>
+						</select>
+						<button type="button" class="primary" (click)="submitBulkAssign()">Призначити вибрані</button>
+						<button type="button" class="primary" (click)="submitBulkReturn()">Повернути вибрані</button>
+						<button type="button" class="danger" (click)="submitBulkReturnBroken()">Повернути з поломкою</button>
+					</ng-container>
+					<ng-template #studentBulkActions>
+						<button type="button" class="primary" (click)="submitBulkReturn()">Повернути вибрані</button>
+						<button type="button" class="danger" (click)="submitBulkReturnBroken()">Повернути з поломкою</button>
+					</ng-template>
 				</ng-template>
 			</div>
 			<ng-template #emptyBulkActions></ng-template>
@@ -109,7 +121,7 @@
 					<td>{{ getAssignmentLabel(item.id) }}</td>
 					<td>{{ item.description }}</td>
 					<td>
-						<div class="action-group" *ngIf="isAdmin(); else userActions">
+						<div class="action-group" *ngIf="isAdmin(); else roleActions">
 							<button type="button" class="danger" (click)="removeComponent(item.id)">Видалити</button>
 							<button type="button" class="edit" (click)="openEditModal(item)">Редагувати</button>
 							<button *ngIf="isAssigned(item.id)" type="button" class="warning" (click)="unassignComponent(item.id)">Зняти призначення</button>
@@ -118,11 +130,25 @@
 							<button *ngIf="!isAssigned(item.id) && item.status !== 'ремонт'" type="button" class="primary" (click)="openAssignModal(item)">Призначити користувачу</button>
 						</div>
 
-						<ng-template #userActions>
-							<div class="action-group">
-								<button type="button" class="primary" (click)="returnComponent(item.id)">Повернути</button>
-								<button type="button" class="danger" (click)="returnBrokenComponent(item.id)">Повернути з поломкою</button>
-							</div>
+						<ng-template #roleActions>
+							<ng-container *ngIf="isTutor(); else studentActions">
+								<div class="action-group">
+									<button *ngIf="isAssignedToMe(item.id)" type="button" class="primary" (click)="openAssignModal(item)">Призначити студенту</button>
+									<button *ngIf="isAssignedToMe(item.id) || isAssignedToMyStudent(item.id)" type="button" class="secondary" (click)="returnComponent(item.id)">
+										{{ isAssignedToMyStudent(item.id) ? 'Прийняти назад' : 'Повернути до пулу' }}
+									</button>
+									<button *ngIf="isAssignedToMe(item.id) || isAssignedToMyStudent(item.id)" type="button" class="danger" (click)="returnBrokenComponent(item.id)">
+										{{ isAssignedToMyStudent(item.id) ? 'Прийняти назад поламане' : 'Повернути з поломкою' }}
+									</button>
+								</div>
+							</ng-container>
+
+							<ng-template #studentActions>
+								<div class="action-group">
+									<button type="button" class="primary" (click)="returnComponent(item.id)">Повернути</button>
+									<button type="button" class="danger" (click)="returnBrokenComponent(item.id)">Повернути з поломкою</button>
+								</div>
+							</ng-template>
 						</ng-template>
 					</td>
 				</tr>
@@ -151,6 +177,7 @@
 					<button type="button" class="primary" (click)="openAddUserModal()">Створити користувача</button>
 					<button type="button" class="danger" (click)="openDeleteUserModal()">Видалити користувача</button>
 					<button type="button" class="secondary" (click)="openUserReportModal()">Звіт користувача</button>
+					<button type="button" class="secondary" (click)="openTutorAssignModal()">Студенти до тьюторів</button>
 				</div>
 			</div>
 
@@ -172,6 +199,37 @@
 		</div>
 	</section>
 
+	<section class="modal-backdrop" *ngIf="showTutorAssignModal">
+		<div class="modal-card modal-wide report-panel">
+			<div class="modal-header">
+				<h2>Призначити студентів тьютору</h2>
+				<button type="button" class="icon-button" (click)="closeAllModals()">×</button>
+			</div>
+
+			<form [formGroup]="tutorAssignForm" (ngSubmit)="submitTutorAssignment()" class="modal-form">
+				<label>
+					<span>Тьютор</span>
+					<select formControlName="tutorId">
+						<option *ngFor="let tutor of getTutorUsers(); trackBy: trackById" [value]="tutor.id">{{ tutor.username }}</option>
+					</select>
+				</label>
+
+				<div class="report-scroll student-picker">
+					<label class="student-picker-row" *ngFor="let student of getStudentUsers(); trackBy: trackById">
+						<input #studentCheckbox type="checkbox" [checked]="selectedStudentIds.includes(student.id)" (change)="toggleStudentSelection(student.id, studentCheckbox.checked)" />
+						<span>{{ student.username }}</span>
+					</label>
+				</div>
+
+				<div class="action-group modal-actions">
+					<button type="button" class="secondary" (click)="selectAllStudents()">Позначити всіх студентів</button>
+					<button type="button" class="secondary" (click)="clearStudentSelection()">Очистити</button>
+					<button type="submit" class="primary" [disabled]="!selectedStudentIds.length">Призначити</button>
+				</div>
+			</form>
+		</div>
+	</section>
+
 	<section class="modal-backdrop" *ngIf="showEditModal">
 		<div class="modal-card">
 			<div class="modal-header">
@@ -185,7 +243,7 @@
 				<label>
 					<span>Тип</span>
 					<select formControlName="type">
-						<option value="контролер">Контролер</option>
+						<option *ngFor="let user of getComponentAssignableUsers(); trackBy: trackById" [value]="user.id">{{ user.username }}</option>
 						<option value="датчик">Датчик</option>
 						<option value="модуль">Модуль</option>
 					</select>
@@ -253,7 +311,7 @@
 				<label>
 					<span>Користувач</span>
 					<select formControlName="userId">
-						<option *ngFor="let user of getAssignableUsers(); trackBy: trackById" [value]="user.id">{{ user.username }}</option>
+						<option *ngFor="let user of getComponentAssignableUsers(); trackBy: trackById" [value]="user.id">{{ user.username }}</option>
 					</select>
 				</label>
 				<div class="action-group modal-actions">
@@ -279,7 +337,7 @@
 					<select formControlName="role">
 						<option value="user">Користувач</option>
 						<option value="admin">Адміністратор</option>
-						<option value="teacher">Викладач</option>
+							<option value="tutor">Тьютор</option>
 					</select>
 				</label>
 				<div class="action-group modal-actions">
@@ -301,7 +359,7 @@
 				<label>
 					<span>Користувач</span>
 					<select formControlName="userId">
-						<option *ngFor="let user of getAssignableUsers(); trackBy: trackById" [value]="user.id">{{ user.username }}</option>
+						<option *ngFor="let user of getDeletableUsers(); trackBy: trackById" [value]="user.id">{{ user.username }}</option>
 					</select>
 				</label>
 				<div class="action-group modal-actions">
@@ -361,7 +419,7 @@
 			</div>
 
 			<div class="user-report-controls">
-				<label *ngIf="isAdmin(); else currentUserOnly" class="user-report-select">
+				<label *ngIf="isAdmin() || isTutor(); else currentUserOnly" class="user-report-select">
 					<span>Користувач</span>
 					<select #reportUserSelect [value]="selectedReportUserId" (change)="onReportUserChange(reportUserSelect.value)">
 						<option *ngFor="let user of getReportUsers(); trackBy: trackById" [value]="user.id">{{ user.username }}</option>

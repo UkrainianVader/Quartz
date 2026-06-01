@@ -16,6 +16,7 @@ export interface DashboardUser {
   id: number;
   username: string;
   role: string;
+  tutorId: number | null;
 }
 
 export interface WarehouseReport {
@@ -57,6 +58,7 @@ export interface DashboardResponse {
   users: DashboardUser[];
   assignedEquipmentIds: number[];
   assignmentByEquipmentId: Record<string, string | null>;
+  assignmentUserIdByEquipmentId: Record<string, number | null>;
   warehouseReport: WarehouseReport | null;
 }
 
@@ -144,6 +146,10 @@ export class DashboardService {
 
   bulkReturnBrokenComponents(ids: number[]): Observable<{ message: string; returned: number[]; skipped: number[] }> {
     return this.http.post<{ message: string; returned: number[]; skipped: number[] }>('/api/assignments/bulk-return-broken', { ids }, { withCredentials: true });
+  }
+
+  bulkAssignStudentsToTutor(studentIds: number[], tutorId: number): Observable<{ message: string; assigned: number[]; skipped: number[] }> {
+    return this.http.post<{ message: string; assigned: number[]; skipped: number[] }>('/api/users/bulk-assign-tutor', { studentIds, tutorId }, { withCredentials: true });
   }
 
   returnComponent(id: number): Observable<void> {

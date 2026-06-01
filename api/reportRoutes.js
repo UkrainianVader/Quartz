@@ -89,6 +89,7 @@ router.get('/api/report/user/:userId', requireApiAuth, async (req, res) => {
         const requestedUserId = Number(req.params.userId);
         const currentUserId = Number(req.session.user.id);
         const isAdmin = req.session.user.role === 'admin';
+        const isTutor = req.session.user.role === 'tutor';
 
         if (!Number.isInteger(requestedUserId) || requestedUserId <= 0) {
             return res.status(400).json({ message: 'Invalid user id' });
@@ -99,15 +100,23 @@ router.get('/api/report/user/:userId', requireApiAuth, async (req, res) => {
         }
 
         const [users, components, usageRows] = await Promise.all([
-            readRows('users', 'id, username, role'),
+            readRows('users', 'id, username, role, tutor_id'),
             readRows('components', 'id, name, type, serial, status, description'),
-            readRows('usage_history', 'id, equipment_id, user_id, username, date_taken, date_returned, returned_broken')
+            readRows('usage_history', 'id, equipment_id, user_id, assigned_by_user_id, username, date_taken, date_returned, returned_broken')
         ]);
 
         const user = users.find((row) => Number(row.id) === requestedUserId);
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (!isAdmin) {
+            if (requestedUserId !== currentUserId) {
+                if (!isTutor || Number(user.tutor_id) !== currentUserId) {
+                    return res.status(403).json({ message: 'Access denied' });
+                }
+            }
         }
 
         return res.json({
