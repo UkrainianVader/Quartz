@@ -53,9 +53,6 @@
 		<div class="bulk-actions">
 			<div class="bulk-actions-left">
 				<strong>{{ selectedItemIds.length }} вибрано</strong>
-				<span *ngIf="hasSelection(); else selectionHint">
-					{{ isAdmin() ? 'Масові дії для адміністраторів' : 'Масове повернення для поточного користувача' }}
-				</span>
 				<ng-template #selectionHint>
 					<span>Позначте щонайменше один компонент, щоб відкрити дії.</span>
 				</ng-template>
@@ -238,6 +235,24 @@
 					<button type="submit" class="primary">Додати компонент</button>
 				</div>
 			</form>
+		</div>
+	</section>
+
+	<section class="modal-backdrop" *ngIf="showWarningModal">
+		<div class="modal-card warning-modal">
+			<div class="modal-header">
+				<h2>Серійний номер уже існує</h2>
+				<button type="button" class="icon-button" (click)="closeWarningModal()">×</button>
+			</div>
+
+			<div class="warning-content">
+				<p>{{ warningMessage }}</p>
+				<p class="warning-hint">Змініть серійний номер і спробуйте ще раз.</p>
+			</div>
+
+			<div class="action-group modal-actions">
+				<button type="button" class="primary" (click)="closeWarningModal()">Зрозуміло</button>
+			</div>
 		</div>
 	</section>
 

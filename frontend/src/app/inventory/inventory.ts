@@ -36,12 +36,14 @@ export class Inventory implements OnInit {
   protected showDeleteUserModal = false;
   protected showReportModal = false;
   protected showUserReportModal = false;
+  protected showWarningModal = false;
   protected showFilters = false;
   protected showResetDbConfirm = false;
   protected activeAdminTab: 'users' | 'equipment' | 'db' = 'users';
   protected userReport: UserReport | null = null;
   protected userReportLoading = false;
   protected userReportError = '';
+  protected warningMessage = '';
   protected selectedReportUserId = 0;
 
   protected readonly filterForm = this.fb.nonNullable.group({
@@ -174,6 +176,8 @@ export class Inventory implements OnInit {
   }
 
   protected openAddModal(): void {
+    this.warningMessage = '';
+    this.showWarningModal = false;
     this.addForm.reset({
       name: '',
       type: 'контролер',
@@ -236,6 +240,11 @@ export class Inventory implements OnInit {
     this.userReportLoading = false;
   }
 
+  protected closeWarningModal(): void {
+    this.showWarningModal = false;
+    this.warningMessage = '';
+  }
+
   protected onReportUserChange(value: string): void {
     const nextUserId = Number(value);
     if (!Number.isInteger(nextUserId) || nextUserId <= 0 || nextUserId === this.selectedReportUserId) {
@@ -254,6 +263,7 @@ export class Inventory implements OnInit {
     this.showDeleteUserModal = false;
     this.showReportModal = false;
     this.showUserReportModal = false;
+    this.showWarningModal = false;
     this.showResetDbConfirm = false;
   }
 
@@ -327,6 +337,13 @@ export class Inventory implements OnInit {
         this.loadDashboard(true);
       },
       error: (error: unknown) => {
+        if (this.isConflictError(error)) {
+          this.warningMessage = this.extractMessage(error, 'Серійний номер вже використовується');
+          this.showWarningModal = true;
+          this.cdr.detectChanges();
+          return;
+        }
+
         this.errorMessage = this.extractMessage(error, 'Failed to add component');
         this.cdr.detectChanges();
       }
@@ -346,6 +363,13 @@ export class Inventory implements OnInit {
         this.loadDashboard(true);
       },
       error: (error: unknown) => {
+          if (this.isConflictError(error)) {
+            this.warningMessage = this.extractMessage(error, 'Серійний номер вже використовується');
+            this.showWarningModal = true;
+            this.cdr.detectChanges();
+            return;
+          }
+
         this.errorMessage = this.extractMessage(error, 'Failed to update component');
         this.cdr.detectChanges();
       }
@@ -635,6 +659,13 @@ export class Inventory implements OnInit {
     }
 
     return fallback;
+  }
+
+  private isConflictError(error: unknown): boolean {
+    return typeof error === 'object'
+      && error !== null
+      && 'status' in error
+      && (error as { status?: number }).status === 409;
   }
 
   private loadUserReport(userId: number): void {

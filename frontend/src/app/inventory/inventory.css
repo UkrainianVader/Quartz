@@ -224,6 +224,24 @@ th {
 	padding: 20px;
 }
 
+.warning-modal {
+	width: min(100%, 520px);
+	border-left: 4px solid var(--warning-border);
+}
+
+.warning-content {
+	display: grid;
+	gap: 10px;
+	margin-bottom: 18px;
+	color: var(--text);
+	line-height: 1.5;
+}
+
+.warning-hint {
+	margin: 0;
+	color: var(--text-soft);
+}
+
 .user-report-controls {
 	display: grid;
 	gap: 12px;

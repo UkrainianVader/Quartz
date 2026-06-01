@@ -6,6 +6,11 @@ const router = express.Router();
 
 const sendApiError = (res, error) => {
     console.error(error);
+
+    if (error && (error.code === 'ER_DUP_ENTRY' || error.errno === 1062)) {
+        return res.status(409).json({ message: 'Серійний номер вже використовується' });
+    }
+
     return res.status(500).json({ message: 'Server error' });
 };
 
