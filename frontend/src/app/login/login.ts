@@ -64,7 +64,7 @@ export class Login implements OnInit {
         this.mobileCompanionLoading = false;
         this.mobileCompanionError = false;
         this.mobileCompanionAvailable = Boolean(info.available && info.downloadPath);
-        this.mobileCompanionFileName = info.fileName || 'WareFlow Go.apk';
+        this.mobileCompanionFileName = info.fileName || 'Quartz Go.apk';
 
         if (this.mobileCompanionAvailable && info.downloadPath) {
           this.mobileCompanionUrl = this.buildAbsoluteUrl(serverInfo.primaryUrl, info.downloadPath);
