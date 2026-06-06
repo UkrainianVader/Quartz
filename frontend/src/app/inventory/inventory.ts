@@ -164,12 +164,16 @@ export class Inventory implements OnInit {
   }
 
   protected openEditModal(item: DashboardItem): void {
+    // If component is assigned (status === 'призначене'), initialize with a valid editable status
+    // since the edit form only allows 'вільне' and 'ремонт'
+    const editableStatus = item.status === 'призначене' ? 'вільне' : item.status;
+
     this.editForm.reset({
       id: item.id,
       name: item.name,
       type: item.type,
       serial: item.serial,
-      status: item.status,
+      status: editableStatus,
       description: item.description
     });
     this.showEditModal = true;
@@ -356,7 +360,15 @@ export class Inventory implements OnInit {
       return;
     }
 
-    this.dashboardService.updateComponent(this.editForm.getRawValue()).subscribe({
+    const formValue = this.editForm.getRawValue();
+    // If component is assigned (status === 'призначене'), don't send it in the update
+    // Assignment must be managed via the assignment API
+    const updateValue = {
+      ...formValue,
+      status: formValue.status === 'призначене' ? 'вільне' : formValue.status
+    };
+
+    this.dashboardService.updateComponent(updateValue).subscribe({
         next: () => {
         this.closeAllModals();
         this.actionMessage = 'Компонент оновлено';

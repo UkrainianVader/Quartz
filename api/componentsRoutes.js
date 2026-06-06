@@ -46,11 +46,11 @@ router.post('/api/components/add', requireApiAuth, requireApiAdmin, (req, res) =
 router.post('/api/components/update', requireApiAuth, requireApiAdmin, (req, res) => {
     const { id, name, type, serial, status, description } = req.body;
 
-    if (status === 'призначене') {
-        return res.status(400).json({ message: 'Use assignment action to set assigned status' });
-    }
+    // If status is 'призначене' (assigned), convert to 'вільне' since
+    // assignment must be managed via the assignment API, not directly via update
+    const validStatus = status === 'призначене' ? 'вільне' : status;
 
-    const item = { id, name, type, serial, status, description };
+    const item = { id, name, type, serial, status: validStatus, description };
 
     db.update('components', item, (err) => {
         if (err) {
